@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/hooks/use-theme";
 import { Link } from "react-router-dom";
+import logo from "@/assets/logo.png";
 
 interface HeaderProps {
   user?: {
@@ -22,16 +23,16 @@ export function Header({ user, onLogout }: HeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-20 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-3">
           <img 
-            src="/fav icon.png" 
-            alt="Finegas Logo" 
-            className="h-10 w-10 object-contain"
+            src={logo} 
+            alt="Fine Gas Limited" 
+            className="h-14 w-14 object-contain"
           />
           <div className="flex flex-col">
-            <h1 className="text-lg font-bold text-foreground">Finegas Suppliers</h1>
-            <span className="text-xs text-muted-foreground">Gas Supply Management</span>
+            <h1 className="text-xl font-bold text-primary">Fine Gas Limited</h1>
+            <span className="text-sm text-muted-foreground">Quality Gas Supply</span>
           </div>
         </Link>
 

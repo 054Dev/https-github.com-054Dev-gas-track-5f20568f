@@ -8,94 +8,94 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Gas industry inspired colors - professional blue/orange/grey */
-    --background: 210 20% 98%;
-    --foreground: 215 25% 15%;
+    /* Fine Gas Limited theme - warm bisque/orange/navy */
+    --background: 40 56% 85%;
+    --foreground: 240 100% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 15%;
+    --card-foreground: 240 100% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 15%;
+    --popover-foreground: 240 100% 15%;
 
-    /* Primary: Deep industrial blue */
-    --primary: 211 85% 38%;
+    /* Primary: Orange-red accent */
+    --primary: 16 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 211 85% 55%;
+    --primary-glow: 25 100% 60%;
 
-    /* Secondary: Warm orange accent */
-    --secondary: 25 95% 53%;
+    /* Secondary: Navy blue */
+    --secondary: 210 100% 25%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 15% 45%;
+    --muted: 40 30% 90%;
+    --muted-foreground: 240 50% 40%;
 
-    --accent: 211 85% 48%;
+    --accent: 210 100% 25%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 88%;
-    --input: 215 20% 92%;
-    --ring: 211 85% 38%;
+    --border: 40 30% 75%;
+    --input: 40 30% 75%;
+    --ring: 16 100% 50%;
 
     --radius: 0.75rem;
 
-    /* Success color for payment confirmations */
+    /* Success color */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    /* Warning for pending states */
+    /* Warning */
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(211 85% 38%), hsl(211 85% 55%));
-    --gradient-hero: linear-gradient(135deg, hsl(211 85% 25%) 0%, hsl(211 85% 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(16 100% 50%), hsl(25 100% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(210 100% 25%) 0%, hsl(210 100% 35%) 100%);
     
     /* Shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(211 85% 38% / 0.2);
-    --shadow-card: 0 4px 12px hsl(215 25% 15% / 0.08);
+    --shadow-elegant: 0 10px 30px -10px hsl(16 100% 50% / 0.2);
+    --shadow-card: 0 4px 12px hsl(240 100% 15% / 0.08);
   }
 
   .dark {
-    --background: 215 30% 8%;
-    --foreground: 210 20% 98%;
+    --background: 240 30% 8%;
+    --foreground: 40 56% 85%;
 
-    --card: 215 28% 12%;
-    --card-foreground: 210 20% 98%;
+    --card: 240 25% 12%;
+    --card-foreground: 40 56% 85%;
 
-    --popover: 215 28% 12%;
-    --popover-foreground: 210 20% 98%;
+    --popover: 240 25% 12%;
+    --popover-foreground: 40 56% 85%;
 
-    --primary: 211 85% 55%;
-    --primary-foreground: 215 30% 8%;
-    --primary-glow: 211 85% 65%;
+    --primary: 16 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 25 100% 60%;
 
-    --secondary: 25 95% 58%;
-    --secondary-foreground: 215 30% 8%;
+    --secondary: 210 100% 35%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 215 25% 18%;
-    --muted-foreground: 215 15% 65%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 40 30% 70%;
 
-    --accent: 211 85% 50%;
+    --accent: 210 100% 35%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 25% 22%;
-    --input: 215 25% 20%;
-    --ring: 211 85% 55%;
+    --border: 240 20% 25%;
+    --input: 240 20% 25%;
+    --ring: 16 100% 50%;
 
     --success: 142 70% 45%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 55%;
-    --warning-foreground: 215 30% 8%;
+    --warning-foreground: 240 30% 8%;
 
-    --shadow-elegant: 0 10px 30px -10px hsl(211 85% 55% / 0.3);
+    --shadow-elegant: 0 10px 30px -10px hsl(16 100% 50% / 0.3);
     --shadow-card: 0 4px 12px hsl(0 0% 0% / 0.5);
   }
 }

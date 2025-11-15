@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Package, TrendingUp, Shield, Users } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -68,11 +69,14 @@ export default function Index() {
         
         <div className="relative container py-20 md:py-32">
           <div className="mx-auto max-w-3xl text-center space-y-8">
+            <div className="flex justify-center mb-8">
+              <img src={logo} alt="Fine Gas Limited" className="h-32 w-32" />
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-              Professional Gas Supply <span className="text-primary">Management</span>
+              Fine Gas Limited <span className="text-primary">Management System</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Streamline your gas cylinder supply operations with automated billing, 
+              Professional gas cylinder supply management with automated billing, 
               payment tracking, and comprehensive reporting.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

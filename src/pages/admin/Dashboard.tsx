@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Package, DollarSign, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -151,9 +152,42 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <div className="mt-8 text-center text-muted-foreground">
-          <p>More features coming soon...</p>
-          <p className="text-sm mt-2">Customer management • Deliveries • Payments • Reports</p>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <p className="text-sm text-muted-foreground">Manage admins, staff, and customers</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/users")} className="w-full">
+                Manage Users
+              </Button>
+            </CardContent>
+          </Card>
+          
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Services & Pricing</CardTitle>
+              <p className="text-sm text-muted-foreground">Manage gas services and rates</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/services")} className="w-full">
+                Manage Services
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Deliveries</CardTitle>
+              <p className="text-sm text-muted-foreground">Record and track deliveries</p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline" disabled>
+                Coming Soon
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -1,16 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Receipt, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { PasswordStrength } from "@/components/PasswordStrength";
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [customer, setCustomer] = useState<any>(null);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [stats, setStats] = useState({
     recentDeliveries: 0,
     totalReceipts: 0,
@@ -22,7 +37,9 @@ export default function CustomerDashboard() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       navigate("/login");
       return;
@@ -47,6 +64,11 @@ export default function CustomerDashboard() {
     setUser(session.user);
     setCustomer(customerData);
     loadStats(customerData.id);
+    
+    // Check if using default password
+    if (session.user.user_metadata?.needs_password_change) {
+      setShowPasswordDialog(true);
+    }
   };
 
   const loadStats = async (customerId: string) => {
@@ -73,6 +95,52 @@ export default function CustomerDashboard() {
     });
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+        data: { needs_password_change: false },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Password updated successfully",
+      });
+
+      setShowPasswordDialog(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
@@ -81,23 +149,29 @@ export default function CustomerDashboard() {
   if (!user || !customer) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header user={{ username: customer.username }} onLogout={handleLogout} />
-      <div className="container py-8">
+      <div className="container py-8 flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">{customer.shop_name}</h1>
-          <p className="text-muted-foreground">Welcome back, {customer.in_charge_name}</p>
+          <p className="text-muted-foreground">
+            Welcome back, {customer.in_charge_name}
+          </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Deliveries</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Deliveries
+              </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.recentDeliveries}</div>
-              <p className="text-xs text-muted-foreground">All-time deliveries</p>
+              <p className="text-xs text-muted-foreground">
+                All-time deliveries
+              </p>
             </CardContent>
           </Card>
 
@@ -108,13 +182,17 @@ export default function CustomerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalReceipts}</div>
-              <p className="text-xs text-muted-foreground">Available for download</p>
+              <p className="text-xs text-muted-foreground">
+                Available for download
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Pending Balance
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
@@ -128,9 +206,49 @@ export default function CustomerDashboard() {
 
         <div className="mt-8 text-center text-muted-foreground">
           <p>Customer features coming soon...</p>
-          <p className="text-sm mt-2">View deliveries • Download receipts • Make payments</p>
+          <p className="text-sm mt-2">
+            View deliveries • Download receipts • Make payments
+          </p>
         </div>
       </div>
+      <Footer />
+
+      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Your Password</DialogTitle>
+            <DialogDescription>
+              You are using the default password. Please change it for security.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+              <PasswordStrength password={newPassword} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Update Password
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

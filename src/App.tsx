@@ -10,6 +10,7 @@ import Setup from "./pages/Setup";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminServices from "./pages/admin/Services";
+import AdminContacts from "./pages/admin/Contacts";
 import CustomerDashboard from "./pages/customer/Dashboard";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/services" element={<AdminServices />} />
+            <Route path="/admin/contacts" element={<AdminContacts />} />
             <Route path="/customer/dashboard" element={<CustomerDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

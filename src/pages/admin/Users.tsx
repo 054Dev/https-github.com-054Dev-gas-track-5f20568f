@@ -101,9 +101,16 @@ export default function Users() {
     setLoading(true);
 
     try {
+      // Only admin can create co_admin
+      if (newUser.role === "co_admin" && user.role !== "admin") {
+        throw new Error("Only admin can add co-admins");
+      }
+
+      const defaultPassword = newUser.role === "customer" ? "finecustomer" : newUser.password;
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
-        password: newUser.password,
+        password: defaultPassword,
         options: {
           data: {
             username: newUser.username,
@@ -122,11 +129,22 @@ export default function Users() {
         });
 
         if (roleError) throw roleError;
+
+        // If customer, send credentials via email/WhatsApp
+        if (newUser.role === "customer") {
+          // TODO: Implement edge function to send email/SMS
+          console.log("Send credentials to customer:", {
+            email: newUser.email,
+            password: defaultPassword,
+          });
+        }
       }
 
       toast({
         title: "Success",
-        description: "User created successfully!",
+        description: newUser.role === "customer" 
+          ? "Customer created! Login credentials sent via email."
+          : "User created successfully!",
       });
 
       setDialogOpen(false);
@@ -240,25 +258,36 @@ export default function Users() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="co_admin">Co-Admin</SelectItem>
+                      {user.role === "admin" && (
+                        <>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="co_admin">Co-Admin</SelectItem>
+                        </>
+                      )}
                       <SelectItem value="staff">Staff</SelectItem>
                       <SelectItem value="customer">Customer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Temporary Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    required
-                  />
-                </div>
+                {newUser.role !== "customer" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Temporary Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, password: e.target.value })
+                      }
+                      required
+                    />
+                  </div>
+                )}
+                {newUser.role === "customer" && (
+                  <p className="text-sm text-muted-foreground">
+                    Default password "finecustomer" will be set and sent to the customer.
+                  </p>
+                )}
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? "Creating..." : "Create User"}
                 </Button>

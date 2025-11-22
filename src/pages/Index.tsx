@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Package, TrendingUp, Shield, Users } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -53,11 +54,11 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex flex-col">
       <Header />
       
       {/* Hero Section with Video Background */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden flex-1">
         <video 
           autoPlay 
           muted 
@@ -149,6 +150,7 @@ export default function Index() {
           </Button>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

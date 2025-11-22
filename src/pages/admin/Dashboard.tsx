@@ -4,8 +4,9 @@ import { Header } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Package, DollarSign, AlertCircle } from "lucide-react";
+import { Users, Package, DollarSign, AlertCircle, Contact } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Footer } from "@/components/Footer";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -96,9 +97,9 @@ export default function AdminDashboard() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
-      <div className="container py-8">
+      <div className="container py-8 flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user.username}</p>
@@ -179,6 +180,18 @@ export default function AdminDashboard() {
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
+              <CardTitle>Admin Contacts</CardTitle>
+              <p className="text-sm text-muted-foreground">View and manage admin contacts</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/contacts")} className="w-full">
+                View Contacts
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
               <CardTitle>Deliveries</CardTitle>
               <p className="text-sm text-muted-foreground">Record and track deliveries</p>
             </CardHeader>
@@ -190,6 +203,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

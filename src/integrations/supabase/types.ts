@@ -442,6 +442,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reset_admin_password: {
+        Args: { admin_email: string; new_password: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "co_admin" | "staff" | "customer"

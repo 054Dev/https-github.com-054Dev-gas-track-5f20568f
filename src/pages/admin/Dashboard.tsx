@@ -69,11 +69,15 @@ export default function AdminDashboard() {
       .select("*", { count: "exact", head: true })
       .gte("delivery_date", today);
 
-    const { data: revenueData } = await supabase
-      .from("payments")
-      .select("amount_paid");
+    // Calculate total sales (profit) from all deliveries
+    const { data: deliveriesData } = await supabase
+      .from("deliveries")
+      .select("total_charge, manual_adjustment");
 
-    const totalRevenue = revenueData?.reduce((sum, p) => sum + Number(p.amount_paid), 0) || 0;
+    const totalRevenue = deliveriesData?.reduce(
+      (sum, d) => sum + Number(d.total_charge) + Number(d.manual_adjustment || 0), 
+      0
+    ) || 0;
 
     const { data: arrearsData } = await supabase
       .from("customers")
@@ -130,12 +134,12 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">KES {stats.totalRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">All-time payments</p>
+              <p className="text-xs text-muted-foreground">Gross profit from all orders</p>
             </CardContent>
           </Card>
 
@@ -154,6 +158,18 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Customer Management</CardTitle>
+              <p className="text-sm text-muted-foreground">View and manage all customers</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/customers")} className="w-full">
+                View Customers
+              </Button>
+            </CardContent>
+          </Card>
+
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle>User Management</CardTitle>

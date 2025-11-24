@@ -113,7 +113,10 @@ export default function Login() {
               </Link>
             </div>
             <div className="mt-4 text-center text-sm text-muted-foreground">
-              New customer? Contact admin to create an account.
+              New customer?{" "}
+              <Link to="/signup" className="text-primary hover:underline">
+                Create an account
+              </Link>
             </div>
           </CardContent>
         </Card>

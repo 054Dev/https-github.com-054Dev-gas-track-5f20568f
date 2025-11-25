@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { SubNav } from "@/components/SubNav";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,6 +104,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role={user.role} />
       <div className="container py-8 flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>

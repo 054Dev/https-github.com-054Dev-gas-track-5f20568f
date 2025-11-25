@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { SubNav } from "@/components/SubNav";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,6 +131,7 @@ export default function AdminCustomers() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role={user.role} />
       <div className="container py-8 flex-1">
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Customer Management</h1>
@@ -202,7 +203,6 @@ export default function AdminCustomers() {
           </div>
         )}
       </div>
-      <Footer />
     </div>
   );
 }

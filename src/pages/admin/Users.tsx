@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
+import { SubNav } from "@/components/SubNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -178,6 +179,7 @@ export default function Users() {
   return (
     <div className="min-h-screen bg-background">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role={user.role} />
       <main className="container mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
           <div>

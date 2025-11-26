@@ -24,6 +24,13 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Package, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Delivery {
   id: string;
@@ -32,6 +39,7 @@ interface Delivery {
   total_charge: number;
   manual_adjustment: number;
   notes: string;
+  status: "pending" | "en_route" | "delivered";
   customer: {
     shop_name: string;
     in_charge_name: string;
@@ -105,6 +113,7 @@ export default function OrderTracking() {
         total_charge,
         manual_adjustment,
         notes,
+        status,
         customer:customers(shop_name, in_charge_name),
         delivery_items(
           quantity,
@@ -137,6 +146,30 @@ export default function OrderTracking() {
       );
       
       setStats({ totalOrders, totalKg, totalRevenue });
+    }
+  };
+
+  const updateStatus = async (deliveryId: string, newStatus: "pending" | "en_route" | "delivered") => {
+    try {
+      const { error } = await supabase
+        .from("deliveries")
+        .update({ status: newStatus })
+        .eq("id", deliveryId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Order status updated!",
+      });
+
+      loadDeliveries();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -267,7 +300,19 @@ export default function OrderTracking() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="default">Delivered</Badge>
+                        <Select
+                          value={delivery.status}
+                          onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
+                        >
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-card z-50">
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="en_route">En Route</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                     </TableRow>
                   ))

@@ -20,8 +20,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package } from "lucide-react";
+import { Package, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Delivery {
   id: string;
@@ -30,13 +43,18 @@ interface Delivery {
   total_charge: number;
   manual_adjustment: number;
   notes: string;
+  status: "pending" | "en_route" | "delivered";
 }
 
 export default function CustomerOrders() {
   const [user, setUser] = useState<any>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     checkAuth();
@@ -78,10 +96,69 @@ export default function CustomerOrders() {
       .single();
 
     if (customerData) {
+      setCustomerId(customerData.id);
       loadDeliveries(customerData.id);
     }
     
     setLoading(false);
+  };
+
+  const deleteDelivery = async () => {
+    if (!selectedDeliveryId || !customerId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Get delivery details before deleting
+      const { data: deliveryData, error: fetchError } = await supabase
+        .from("deliveries")
+        .select("total_charge, customer_id")
+        .eq("id", selectedDeliveryId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete the delivery
+      const { error: deleteError } = await supabase
+        .from("deliveries")
+        .delete()
+        .eq("id", selectedDeliveryId);
+
+      if (deleteError) throw deleteError;
+
+      // Update customer arrears
+      const { data: customerData, error: customerFetchError } = await supabase
+        .from("customers")
+        .select("arrears_balance")
+        .eq("id", deliveryData.customer_id)
+        .single();
+
+      if (!customerFetchError && customerData) {
+        await supabase
+          .from("customers")
+          .update({
+            arrears_balance: (customerData.arrears_balance || 0) - deliveryData.total_charge,
+          })
+          .eq("id", deliveryData.customer_id);
+      }
+
+      toast({
+        title: "Success",
+        description: "Order reverted successfully!",
+      });
+
+      loadDeliveries(customerId);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+      setDeleteDialogOpen(false);
+      setSelectedDeliveryId(null);
+    }
   };
 
   const loadDeliveries = async (customerId: string) => {
@@ -129,13 +206,15 @@ export default function CustomerOrders() {
                   <TableHead className="text-right">KG Delivered</TableHead>
                   <TableHead className="text-right">Charge</TableHead>
                   <TableHead className="text-right">Adjustment</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Notes</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {deliveries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No deliveries yet</p>
                     </TableCell>
@@ -157,8 +236,35 @@ export default function CustomerOrders() {
                           ? `KES ${delivery.manual_adjustment.toFixed(2)}`
                           : "-"}
                       </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            delivery.status === "delivered"
+                              ? "default"
+                              : delivery.status === "en_route"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {delivery.status === "en_route" ? "En Route" : delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="max-w-xs truncate">
                         {delivery.notes || "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {delivery.status === "pending" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDeliveryId(delivery.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -169,6 +275,23 @@ export default function CustomerOrders() {
         </Card>
       </main>
       <Footer />
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revert Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this pending order. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteDelivery}>
+              Revert Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

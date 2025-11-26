@@ -47,6 +47,16 @@ export function SubNav({ role }: SubNavProps) {
                 <SettingsIcon className="inline-block mr-2 h-4 w-4" />
                 Users
               </NavLink>
+              {role === "admin" && (
+                <NavLink
+                  to="/admin/sub-admins"
+                  className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
+                  activeClassName="bg-accent text-accent-foreground"
+                >
+                  <Users className="inline-block mr-2 h-4 w-4" />
+                  Sub-Admins
+                </NavLink>
+              )}
             </>
           ) : (
             <>
@@ -59,20 +69,20 @@ export function SubNav({ role }: SubNavProps) {
                 Dashboard
               </NavLink>
               <NavLink
+                to="/customer/place-order"
+                className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
+                activeClassName="bg-accent text-accent-foreground"
+              >
+                <Package className="inline-block mr-2 h-4 w-4" />
+                Place Order
+              </NavLink>
+              <NavLink
                 to="/customer/orders"
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
                 activeClassName="bg-accent text-accent-foreground"
               >
                 <Package className="inline-block mr-2 h-4 w-4" />
                 My Orders
-              </NavLink>
-              <NavLink
-                to="/admin/contacts"
-                className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
-                activeClassName="bg-accent text-accent-foreground"
-              >
-                <Phone className="inline-block mr-2 h-4 w-4" />
-                Contact Admin
               </NavLink>
             </>
           )}

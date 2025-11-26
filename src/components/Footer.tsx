@@ -58,12 +58,12 @@ export function Footer() {
         .from("customers")
         .select("id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!customer) {
         toast({
           title: "Error",
-          description: "Customer profile not found",
+          description: "Customer profile not found. This feature is only available to customers.",
           variant: "destructive",
         });
         return;

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
+import { BackButton } from "@/components/BackButton";
+import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Receipt, DollarSign } from "lucide-react";
@@ -153,11 +155,28 @@ export default function CustomerDashboard() {
       <Header user={{ username: customer.username }} onLogout={handleLogout} />
       <SubNav role="customer" />
       <div className="container py-8 flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">{customer.shop_name}</h1>
-          <p className="text-muted-foreground">
-            Welcome back, {customer.in_charge_name}
-          </p>
+          <Card className="bg-primary/10 border-primary/20">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">{customer.shop_name}</h2>
+                  <p className="text-muted-foreground">
+                    Welcome back, {customer.in_charge_name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Your Rate</p>
+                  <p className="text-2xl font-bold text-primary">
+                    KES {customer.price_per_kg}/kg
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
@@ -249,6 +268,7 @@ export default function CustomerDashboard() {
           </form>
         </DialogContent>
       </Dialog>
+      <Footer />
     </div>
   );
 }

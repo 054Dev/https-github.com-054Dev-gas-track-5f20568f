@@ -145,6 +145,10 @@ export default function Orders() {
 
   const updateStatus = async (deliveryId: string, newStatus: "pending" | "en_route" | "delivered") => {
     try {
+      // Get delivery details first
+      const delivery = deliveries.find(d => d.id === deliveryId);
+      if (!delivery) throw new Error("Delivery not found");
+
       const { error } = await supabase
         .from("deliveries")
         .update({ status: newStatus })
@@ -152,9 +156,41 @@ export default function Orders() {
 
       if (error) throw error;
 
+      // Send notification only when status changes to en_route or delivered
+      if (newStatus === "en_route" || newStatus === "delivered") {
+        const { data: deliveryData } = await supabase
+          .from("deliveries")
+          .select("customer_id")
+          .eq("id", deliveryId)
+          .single();
+
+        if (deliveryData) {
+          const statusMessage = newStatus === "en_route" 
+            ? "Your order is now en route and will arrive soon!"
+            : "Your order has been delivered successfully!";
+
+          // Call edge function to send notifications
+          const { error: notificationError } = await supabase.functions.invoke(
+            "send-notification",
+            {
+              body: {
+                customerId: deliveryData.customer_id,
+                message: statusMessage,
+                type: "order_status",
+                status: newStatus,
+              },
+            }
+          );
+
+          if (notificationError) {
+            console.error("Failed to send notification:", notificationError);
+          }
+        }
+      }
+
       toast({
         title: "Success",
-        description: "Order status updated!",
+        description: "Order status updated and notifications sent!",
       });
 
       loadDeliveries();

@@ -5,6 +5,8 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   Card,
   CardContent,
@@ -55,6 +57,7 @@ export default function CustomerOrders() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { notifications } = useNotifications(customerId || undefined);
 
   useEffect(() => {
     checkAuth();
@@ -180,7 +183,9 @@ export default function CustomerOrders() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <NotificationBell notifications={notifications} />
+      </Header>
       <SubNav role={user.role} />
       <main className="container mx-auto p-6 flex-1">
         <div className="mb-6">

@@ -102,10 +102,13 @@ export default function CustomerOrders() {
   if (loading || !user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
-      <main className="container mx-auto p-6">
+      <main className="container mx-auto p-6 flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold">My Orders</h1>
           <p className="text-muted-foreground">
@@ -165,6 +168,7 @@ export default function CustomerOrders() {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -107,6 +107,9 @@ export default function AdminDashboard() {
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
       <div className="container py-8 flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="mb-8">
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {user.username}</p>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { SubNav } from "@/components/SubNav";
+import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -171,15 +173,11 @@ export default function CustomerDetail() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role={user.role} />
       <div className="container py-8 flex-1">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/admin/customers")}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Customers
-        </Button>
+        <div className="mb-6">
+          <BackButton />
+        </div>
 
         {/* Customer Header */}
         <Card className="mb-6">

@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
+import { SubNav } from "@/components/SubNav";
+import { BackButton } from "@/components/BackButton";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,7 +157,11 @@ export default function Contacts() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role={user.role} />
       <main className="container mx-auto p-6 flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Admin Contacts</h1>
           <p className="text-muted-foreground">
@@ -204,6 +211,7 @@ export default function Contacts() {
           ))}
         </div>
       </main>
+      <Footer />
 
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent>

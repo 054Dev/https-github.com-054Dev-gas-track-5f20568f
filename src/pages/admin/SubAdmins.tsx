@@ -76,37 +76,48 @@ export default function SubAdmins() {
 
   const loadSubAdmins = async () => {
     setLoading(true);
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("user_id, role")
-      .eq("role", "co_admin");
+    
+    try {
+      // Get all co_admin roles with their user profiles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select(`
+          user_id,
+          role,
+          profiles:user_id (
+            id,
+            username,
+            full_name,
+            phone
+          )
+        `)
+        .eq("role", "co_admin");
 
-    if (rolesData && rolesData.length > 0) {
-      const userIds = rolesData.map((r) => r.user_id);
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", userIds);
+      if (rolesError) throw rolesError;
 
-      if (profilesData) {
-        const { data: authData } = await supabase.auth.admin.listUsers();
-        const authUsers = authData?.users || [];
-        
-        const subAdminsList: SubAdmin[] = profilesData.map((profile: any) => {
-          const authUser = authUsers.find((u: any) => u.id === profile.id);
-          return {
-            id: profile.id,
-            username: profile.username,
-            full_name: profile.full_name,
-            phone: profile.phone,
-            email: authUser?.email || "",
-            role: "co_admin",
-          };
-        });
+      if (rolesData && rolesData.length > 0) {
+        const subAdminsList: SubAdmin[] = rolesData.map((item: any) => ({
+          id: item.profiles.id,
+          username: item.profiles.username,
+          full_name: item.profiles.full_name,
+          phone: item.profiles.phone,
+          email: `${item.profiles.username}@system.local`, // Placeholder as we can't access auth emails from client
+          role: "co_admin",
+        }));
         setSubAdmins(subAdminsList);
+      } else {
+        setSubAdmins([]);
       }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to load sub-admins",
+        variant: "destructive",
+      });
+      setSubAdmins([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const createSubAdmin = async (e: React.FormEvent) => {

@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { PasswordStrength } from "@/components/PasswordStrength";
 import { Header } from "@/components/Header";
+import { BackButton } from "@/components/BackButton";
+import { Footer } from "@/components/Footer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
@@ -149,9 +151,12 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <div className="container py-8 max-w-4xl mx-auto">
+      <div className="container py-8 max-w-4xl mx-auto flex-1">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
 
         <div className="space-y-6">
@@ -252,6 +257,7 @@ export default function Settings() {
           </Card>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

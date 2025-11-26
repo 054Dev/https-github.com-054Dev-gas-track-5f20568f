@@ -10,7 +10,7 @@ export function SubNav({ role }: SubNavProps) {
   const isAdmin = role === "admin" || role === "co_admin" || role === "staff";
 
   return (
-    <nav className="border-b bg-card">
+    <nav className="border-b bg-card hidden md:block">
       <div className="container mx-auto px-6">
         <div className="flex space-x-1 py-2">
           {isAdmin ? (

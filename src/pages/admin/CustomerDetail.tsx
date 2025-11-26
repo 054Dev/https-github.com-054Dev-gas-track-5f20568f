@@ -174,21 +174,21 @@ export default function CustomerDetail() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
-      <div className="container py-8 flex-1">
-        <div className="mb-6">
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
 
         {/* Customer Header */}
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
               <div>
-                <CardTitle className="text-2xl mb-2">{customer.shop_name}</CardTitle>
-                <p className="text-muted-foreground">{customer.in_charge_name}</p>
+                <CardTitle className="text-xl md:text-2xl mb-2">{customer.shop_name}</CardTitle>
+                <p className="text-sm md:text-base text-muted-foreground">{customer.in_charge_name}</p>
               </div>
               {user.role === "admin" && (
-                <Button onClick={() => setShowPricingDialog(true)}>
+                <Button onClick={() => setShowPricingDialog(true)} className="w-full md:w-auto">
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Pricing
                 </Button>
@@ -196,30 +196,30 @@ export default function CustomerDetail() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="space-y-2 md:space-y-3">
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{customer.address || "No address provided"}</span>
+                  <MapPin className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs md:text-sm">{customer.address || "No address provided"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{customer.phone}</span>
+                  <Phone className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs md:text-sm">{customer.phone}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{customer.email}</span>
+                  <Mail className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-xs md:text-sm break-all">{customer.email}</span>
                 </div>
               </div>
-              <div className="space-y-3">
-                <div className="bg-muted p-3 rounded-md">
-                  <p className="text-sm text-muted-foreground">Price per KG</p>
-                  <p className="text-xl font-bold">KES {customer.price_per_kg}</p>
+              <div className="space-y-2 md:space-y-3">
+                <div className="bg-muted p-2 md:p-3 rounded-md">
+                  <p className="text-xs md:text-sm text-muted-foreground">Price per KG</p>
+                  <p className="text-lg md:text-xl font-bold">KES {customer.price_per_kg}</p>
                 </div>
                 {customer.arrears_balance > 0 && (
-                  <div className="bg-warning/10 p-3 rounded-md">
-                    <p className="text-sm text-warning font-medium">Pending Arrears</p>
-                    <p className="text-xl font-bold text-warning">
+                  <div className="bg-warning/10 p-2 md:p-3 rounded-md">
+                    <p className="text-xs md:text-sm text-warning font-medium">Pending Arrears</p>
+                    <p className="text-lg md:text-xl font-bold text-warning">
                       KES {customer.arrears_balance.toLocaleString()}
                     </p>
                   </div>
@@ -230,31 +230,31 @@ export default function CustomerDetail() {
         </Card>
 
         {/* Summary Cards */}
-        <div className="grid md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 md:mb-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Total Deliveries</CardTitle>
+              <CardTitle className="text-sm md:text-base font-medium">Total Deliveries</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{deliveries.length}</p>
+              <p className="text-xl md:text-2xl font-bold">{deliveries.length}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+              <CardTitle className="text-sm md:text-base font-medium">Total Earnings</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-success">
+              <p className="text-xl md:text-2xl font-bold text-success">
                 KES {totalEarnings.toLocaleString()}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
+              <CardTitle className="text-sm md:text-base font-medium">Outstanding Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-warning">
+              <p className="text-xl md:text-2xl font-bold text-warning">
                 KES {customer.arrears_balance.toLocaleString()}
               </p>
             </CardContent>
@@ -264,45 +264,47 @@ export default function CustomerDetail() {
         {/* Transactions Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
+            <CardTitle className="text-lg md:text-xl">Transaction History</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             {deliveries.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Quantity (KG)</TableHead>
-                    <TableHead>Base Charge</TableHead>
-                    <TableHead>Adjustment</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>
-                        {new Date(delivery.delivery_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>{delivery.total_kg} KG</TableCell>
-                      <TableCell>KES {Number(delivery.total_charge).toLocaleString()}</TableCell>
-                      <TableCell>
-                        {delivery.manual_adjustment !== 0 && (
-                          <span className={delivery.manual_adjustment > 0 ? "text-success" : "text-warning"}>
-                            {delivery.manual_adjustment > 0 ? "+" : ""}
-                            KES {Number(delivery.manual_adjustment).toLocaleString()}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        KES {(Number(delivery.total_charge) + Number(delivery.manual_adjustment || 0)).toLocaleString()}
-                      </TableCell>
+              <div className="min-w-[600px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs md:text-sm">Date</TableHead>
+                      <TableHead className="text-xs md:text-sm">Quantity (KG)</TableHead>
+                      <TableHead className="text-xs md:text-sm">Base Charge</TableHead>
+                      <TableHead className="text-xs md:text-sm">Adjustment</TableHead>
+                      <TableHead className="text-right text-xs md:text-sm">Total</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveries.map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell className="text-xs md:text-sm">
+                          {new Date(delivery.delivery_date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">{delivery.total_kg} KG</TableCell>
+                        <TableCell className="text-xs md:text-sm">KES {Number(delivery.total_charge).toLocaleString()}</TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          {delivery.manual_adjustment !== 0 && (
+                            <span className={delivery.manual_adjustment > 0 ? "text-success" : "text-warning"}>
+                              {delivery.manual_adjustment > 0 ? "+" : ""}
+                              KES {Number(delivery.manual_adjustment).toLocaleString()}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-xs md:text-sm">
+                          KES {(Number(delivery.total_charge) + Number(delivery.manual_adjustment || 0)).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">No transactions yet</p>
+              <p className="text-center text-muted-foreground py-8 text-sm md:text-base">No transactions yet</p>
             )}
           </CardContent>
         </Card>

@@ -218,32 +218,32 @@ export default function Orders() {
     <div className="min-h-screen bg-background">
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
-      <main className="container mx-auto p-6">
-        <div className="mb-6">
+      <main className="container mx-auto p-4 md:p-6">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4 md:mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Order Management</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold">Order Management</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Track and log customer deliveries
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Log Delivery
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] max-w-md mx-auto">
               <DialogHeader>
-                <DialogTitle>Log New Delivery</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg md:text-xl">Log New Delivery</DialogTitle>
+                <DialogDescription className="text-xs md:text-sm">
                   Record a new gas delivery to a customer
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={createDelivery} className="space-y-4">
+              <form onSubmit={createDelivery} className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="customer">Customer</Label>
                   <Select
@@ -256,7 +256,7 @@ export default function Orders() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select customer" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-card z-50">
                       {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.shop_name} - KES {customer.price_per_kg}/kg
@@ -317,55 +317,57 @@ export default function Orders() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Deliveries</CardTitle>
-            <CardDescription>Last 50 deliveries</CardDescription>
+            <CardTitle className="text-lg md:text-xl">Recent Deliveries</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Last 50 deliveries</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead className="text-right">KG</TableHead>
-                  <TableHead className="text-right">Charge</TableHead>
-                  <TableHead className="text-right">Adjustment</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveries.length === 0 ? (
+          <CardContent className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No deliveries logged yet</p>
-                    </TableCell>
+                    <TableHead className="text-xs md:text-sm">Date</TableHead>
+                    <TableHead className="text-xs md:text-sm">Customer</TableHead>
+                    <TableHead className="text-right text-xs md:text-sm">KG</TableHead>
+                    <TableHead className="text-right text-xs md:text-sm">Charge</TableHead>
+                    <TableHead className="text-right text-xs md:text-sm">Adjustment</TableHead>
+                    <TableHead className="text-xs md:text-sm">Notes</TableHead>
                   </TableRow>
-                ) : (
-                  deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>
-                        {format(new Date(delivery.delivery_date), "MMM dd, yyyy")}
-                      </TableCell>
-                      <TableCell>{delivery.customer.shop_name}</TableCell>
-                      <TableCell className="text-right">
-                        {delivery.total_kg.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        KES {delivery.total_charge.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {delivery.manual_adjustment !== 0
-                          ? `KES ${delivery.manual_adjustment.toFixed(2)}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {delivery.notes || "-"}
+                </TableHeader>
+                <TableBody>
+                  {deliveries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <Package className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-2" />
+                        <p className="text-sm md:text-base text-muted-foreground">No deliveries logged yet</p>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    deliveries.map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell className="text-xs md:text-sm">
+                          {format(new Date(delivery.delivery_date), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">{delivery.customer.shop_name}</TableCell>
+                        <TableCell className="text-right text-xs md:text-sm">
+                          {delivery.total_kg.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs md:text-sm">
+                          KES {delivery.total_charge.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs md:text-sm">
+                          {delivery.manual_adjustment !== 0
+                            ? `KES ${delivery.manual_adjustment.toFixed(2)}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate text-xs md:text-sm">
+                          {delivery.notes || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </main>

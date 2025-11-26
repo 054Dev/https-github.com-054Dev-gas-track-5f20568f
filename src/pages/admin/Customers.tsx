@@ -217,22 +217,22 @@ export default function AdminCustomers() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
-      <div className="container py-8 flex-1">
-        <div className="mb-6">
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 md:mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Customer Management</h1>
-            <p className="text-muted-foreground">View and manage all customers</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Customer Management</h1>
+            <p className="text-sm md:text-base text-muted-foreground">View and manage all customers</p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+          <Button onClick={() => setShowAddDialog(true)} className="gap-2 w-full md:w-auto">
             <Plus className="h-4 w-4" />
             Add Customer
           </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {customers.map((customer) => (
             <Card
               key={customer.id}
@@ -240,19 +240,19 @@ export default function AdminCustomers() {
               onClick={() => handleCustomerClick(customer)}
             >
               <CardHeader>
-                <CardTitle className="flex items-start justify-between">
-                  <span className="text-lg">{customer.shop_name}</span>
+                <CardTitle className="flex flex-col sm:flex-row items-start justify-between gap-2">
+                  <span className="text-base md:text-lg">{customer.shop_name}</span>
                   {customer.arrears_balance > 0 && (
-                    <AlertCircle className="h-5 w-5 text-warning flex-shrink-0" />
+                    <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-warning flex-shrink-0" />
                   )}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">{customer.in_charge_name}</p>
+                <p className="text-xs md:text-sm text-muted-foreground">{customer.in_charge_name}</p>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2 md:space-y-3">
                 {customer.arrears_balance > 0 && (
-                  <div className="bg-warning/10 p-3 rounded-md">
-                    <p className="text-sm font-medium text-warning">Pending Arrears</p>
-                    <p className="text-xl font-bold text-warning">
+                  <div className="bg-warning/10 p-2 md:p-3 rounded-md">
+                    <p className="text-xs md:text-sm font-medium text-warning">Pending Arrears</p>
+                    <p className="text-lg md:text-xl font-bold text-warning">
                       KES {customer.arrears_balance.toLocaleString()}
                     </p>
                   </div>

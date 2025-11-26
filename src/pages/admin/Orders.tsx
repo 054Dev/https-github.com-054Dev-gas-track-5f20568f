@@ -219,6 +219,9 @@ export default function Orders() {
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
       <main className="container mx-auto p-6">
+        <div className="mb-6">
+          <BackButton />
+        </div>
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold">Order Management</h1>

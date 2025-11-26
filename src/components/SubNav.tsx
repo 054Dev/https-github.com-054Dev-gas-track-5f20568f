@@ -1,6 +1,6 @@
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone } from "lucide-react";
+import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone, Truck } from "lucide-react";
 
 interface SubNavProps {
   role: "admin" | "co_admin" | "staff" | "customer";
@@ -30,6 +30,14 @@ export function SubNav({ role }: SubNavProps) {
               >
                 <Package className="inline-block mr-2 h-4 w-4" />
                 Orders
+              </NavLink>
+              <NavLink
+                to="/admin/order-tracking"
+                className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent"
+                activeClassName="bg-accent text-accent-foreground"
+              >
+                <Truck className="inline-block mr-2 h-4 w-4" />
+                Order Tracking
               </NavLink>
               <NavLink
                 to="/admin/customers"

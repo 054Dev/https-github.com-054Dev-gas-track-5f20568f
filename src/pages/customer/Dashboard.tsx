@@ -36,6 +36,16 @@ export default function CustomerDashboard() {
 
   useEffect(() => {
     checkAuth();
+    
+    // Reload customer data when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkAuth();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const checkAuth = async () => {

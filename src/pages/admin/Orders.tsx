@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
+import { BackButton } from "@/components/BackButton";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -364,6 +366,7 @@ export default function Orders() {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

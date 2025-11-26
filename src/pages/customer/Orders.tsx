@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
+import { BackButton } from "@/components/BackButton";
+import { Footer } from "@/components/Footer";
 import {
   Card,
   CardContent,

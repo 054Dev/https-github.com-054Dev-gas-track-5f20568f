@@ -35,7 +35,7 @@ export default function Login() {
           .eq("user_id", data.user.id)
           .maybeSingle();
 
-        if (roleData?.role === "admin" || roleData?.role === "staff") {
+        if (roleData?.role === "admin" || roleData?.role === "co_admin" || roleData?.role === "staff") {
           navigate("/admin/dashboard");
         } else {
           // Check if customer profile exists

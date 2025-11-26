@@ -131,6 +131,7 @@ export default function SubAdmins() {
           data: {
             username: newSubAdmin.username,
             full_name: newSubAdmin.full_name,
+            phone: newSubAdmin.phone,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -139,15 +140,7 @@ export default function SubAdmins() {
       if (signUpError) throw signUpError;
 
       if (signUpData.user) {
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: signUpData.user.id,
-          username: newSubAdmin.username,
-          full_name: newSubAdmin.full_name,
-          phone: newSubAdmin.phone,
-        });
-
-        if (profileError) throw profileError;
-
+        // Profile is auto-created by trigger, just add role
         const { error: roleError } = await supabase.from("user_roles").insert({
           user_id: signUpData.user.id,
           role: "co_admin",

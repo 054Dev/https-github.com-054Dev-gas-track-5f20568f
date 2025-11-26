@@ -106,16 +106,16 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
       <SubNav role={user.role} />
-      <div className="container py-8 flex-1">
-        <div className="mb-6">
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.username}</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Welcome back, {user.username}</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle>Customer Management</CardTitle>

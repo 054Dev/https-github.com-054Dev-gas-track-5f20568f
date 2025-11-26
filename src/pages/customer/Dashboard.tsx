@@ -164,11 +164,11 @@ export default function CustomerDashboard() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={{ username: customer.username }} onLogout={handleLogout} />
       <SubNav role="customer" />
-      <div className="container py-8 flex-1">
-        <div className="mb-6">
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <Card className="bg-primary/10 border-primary/20">
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
@@ -189,7 +189,7 @@ export default function CustomerDashboard() {
           </Card>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">
@@ -234,7 +234,7 @@ export default function CustomerDashboard() {
           </Card>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/place-order")}>
             <CardHeader>
               <CardTitle>Place Order</CardTitle>

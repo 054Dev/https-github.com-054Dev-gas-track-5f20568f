@@ -98,39 +98,39 @@ export function Footer() {
 
   return (
     <>
-      <footer className="border-t bg-card mt-auto py-6">
-        <div className="container mx-auto px-6">
+      <footer className="border-t bg-card mt-auto py-4 md:py-6">
+        <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
               © 2025 Fine Gas Limited. All rights reserved.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleCall}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Phone className="h-4 w-4" />
-                Call Admin
+                <span className="text-xs md:text-sm">Call Admin</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleWhatsApp}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <MessageCircle className="h-4 w-4" />
-                WhatsApp
+                <span className="text-xs md:text-sm">WhatsApp</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setDialogOpen(true)}
-                className="gap-2"
+                className="gap-2 w-full sm:w-auto"
               >
                 <Bell className="h-4 w-4" />
-                Contact Admin
+                <span className="text-xs md:text-sm">Contact</span>
               </Button>
             </div>
           </div>
@@ -138,14 +138,14 @@ export function Footer() {
       </footer>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
           <DialogHeader>
-            <DialogTitle>Contact Admin</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg md:text-xl">Contact Admin</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
               Send a message to the administrator. We'll get back to you soon.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmitNotification} className="space-y-4">
+          <form onSubmit={handleSubmitNotification} className="space-y-3 md:space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Your Name</Label>
               <Input

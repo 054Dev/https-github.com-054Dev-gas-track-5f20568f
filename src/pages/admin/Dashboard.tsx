@@ -214,12 +214,36 @@ export default function AdminDashboard() {
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Deliveries</CardTitle>
-              <p className="text-sm text-muted-foreground">Record and track deliveries</p>
+              <CardTitle>Orders</CardTitle>
+              <p className="text-sm text-muted-foreground">View and manage all orders</p>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline" disabled>
-                Coming Soon
+              <Button onClick={() => navigate("/admin/orders")} className="w-full">
+                View Orders
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Create Delivery</CardTitle>
+              <p className="text-sm text-muted-foreground">Record new delivery for customers</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/create-delivery")} className="w-full">
+                Create Delivery
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Order Tracking</CardTitle>
+              <p className="text-sm text-muted-foreground">Track all customer orders</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/order-tracking")} className="w-full" variant="outline">
+                Track Orders
               </Button>
             </CardContent>
           </Card>

@@ -234,11 +234,32 @@ export default function CustomerDashboard() {
           </Card>
         </div>
 
-        <div className="mt-8 text-center text-muted-foreground">
-          <p>Customer features coming soon...</p>
-          <p className="text-sm mt-2">
-            View deliveries • Download receipts • Make payments
-          </p>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/place-order")}>
+            <CardHeader>
+              <CardTitle>Place Order</CardTitle>
+              <p className="text-sm text-muted-foreground">Request a new gas delivery</p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full">
+                <Package className="mr-2 h-4 w-4" />
+                New Order
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/orders")}>
+            <CardHeader>
+              <CardTitle>My Orders</CardTitle>
+              <p className="text-sm text-muted-foreground">View your order history and receipts</p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                <Receipt className="mr-2 h-4 w-4" />
+                View Orders
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

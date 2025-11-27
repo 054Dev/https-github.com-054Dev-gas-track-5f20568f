@@ -56,7 +56,6 @@ interface Delivery {
   total_charge: number;
   manual_adjustment: number;
   notes: string;
-  status: "pending" | "en_route" | "delivered";
   customer: {
     shop_name: string;
   };
@@ -134,73 +133,12 @@ export default function Orders() {
         total_charge,
         manual_adjustment,
         notes,
-        status,
         customer:customers(shop_name)
       `)
       .order("delivery_date", { ascending: false })
       .limit(50);
 
     if (data) setDeliveries(data as any);
-  };
-
-  const updateStatus = async (deliveryId: string, newStatus: "pending" | "en_route" | "delivered") => {
-    try {
-      // Get delivery details first
-      const delivery = deliveries.find(d => d.id === deliveryId);
-      if (!delivery) throw new Error("Delivery not found");
-
-      const { error } = await supabase
-        .from("deliveries")
-        .update({ status: newStatus })
-        .eq("id", deliveryId);
-
-      if (error) throw error;
-
-      // Send notification only when status changes to en_route or delivered
-      if (newStatus === "en_route" || newStatus === "delivered") {
-        const { data: deliveryData } = await supabase
-          .from("deliveries")
-          .select("customer_id")
-          .eq("id", deliveryId)
-          .single();
-
-        if (deliveryData) {
-          const statusMessage = newStatus === "en_route" 
-            ? "Your order is now en route and will arrive soon!"
-            : "Your order has been delivered successfully!";
-
-          // Call edge function to send notifications
-          const { error: notificationError } = await supabase.functions.invoke(
-            "send-notification",
-            {
-              body: {
-                customerId: deliveryData.customer_id,
-                message: statusMessage,
-                type: "order_status",
-                status: newStatus,
-              },
-            }
-          );
-
-          if (notificationError) {
-            console.error("Failed to send notification:", notificationError);
-          }
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Order status updated and notifications sent!",
-      });
-
-      loadDeliveries();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
   };
 
   const createDelivery = async (e: React.FormEvent) => {
@@ -392,14 +330,13 @@ export default function Orders() {
                     <TableHead className="text-right text-xs md:text-sm">KG</TableHead>
                     <TableHead className="text-right text-xs md:text-sm">Charge</TableHead>
                     <TableHead className="text-right text-xs md:text-sm">Adjustment</TableHead>
-                    <TableHead className="text-xs md:text-sm">Status</TableHead>
                     <TableHead className="text-xs md:text-sm">Notes</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {deliveries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <Package className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-2" />
                         <p className="text-sm md:text-base text-muted-foreground">No deliveries logged yet</p>
                       </TableCell>
@@ -421,21 +358,6 @@ export default function Orders() {
                           {delivery.manual_adjustment !== 0
                             ? `KES ${delivery.manual_adjustment.toFixed(2)}`
                             : "-"}
-                        </TableCell>
-                        <TableCell className="text-xs md:text-sm">
-                          <Select
-                            value={delivery.status}
-                            onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
-                          >
-                            <SelectTrigger className="w-[130px] h-8">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card z-50">
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="en_route">En Route</SelectItem>
-                              <SelectItem value="delivered">Delivered</SelectItem>
-                            </SelectContent>
-                          </Select>
                         </TableCell>
                         <TableCell className="max-w-xs truncate text-xs md:text-sm">
                           {delivery.notes || "-"}

@@ -4,15 +4,13 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
-import { PaymentHistory } from "@/components/PaymentHistory";
-import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, MapPin, Phone, Mail, Edit, DollarSign } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Mail, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +55,6 @@ export default function CustomerDetail() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [showPricingDialog, setShowPricingDialog] = useState(false);
-  const [showCashPaymentDialog, setShowCashPaymentDialog] = useState(false);
   const [newPrice, setNewPrice] = useState("");
 
   useEffect(() => {
@@ -190,20 +187,12 @@ export default function CustomerDetail() {
                 <CardTitle className="text-xl md:text-2xl mb-2">{customer.shop_name}</CardTitle>
                 <p className="text-sm md:text-base text-muted-foreground">{customer.in_charge_name}</p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                {user.role === "admin" && (
-                  <>
-                    <Button onClick={() => setShowPricingDialog(true)} variant="outline" className="w-full sm:w-auto">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Pricing
-                    </Button>
-                    <Button onClick={() => setShowCashPaymentDialog(true)} className="w-full sm:w-auto">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      Record Cash Payment
-                    </Button>
-                  </>
-                )}
-              </div>
+              {user.role === "admin" && (
+                <Button onClick={() => setShowPricingDialog(true)} className="w-full md:w-auto">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Pricing
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -273,7 +262,7 @@ export default function CustomerDetail() {
         </div>
 
         {/* Transactions Table */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg md:text-xl">Transaction History</CardTitle>
           </CardHeader>
@@ -319,9 +308,6 @@ export default function CustomerDetail() {
             )}
           </CardContent>
         </Card>
-
-        {/* Payment History - Import component */}
-        <PaymentHistory customerId={customerId!} isAdmin={true} />
       </div>
       <Footer />
 
@@ -352,16 +338,6 @@ export default function CustomerDetail() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Cash Payment Dialog */}
-      <CashPaymentModal
-        open={showCashPaymentDialog}
-        onOpenChange={setShowCashPaymentDialog}
-        customerId={customerId!}
-        onSuccess={() => {
-          loadCustomerData();
-        }}
-      />
     </div>
   );
 }

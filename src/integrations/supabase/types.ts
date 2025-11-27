@@ -120,7 +120,6 @@ export type Database = {
           manual_adjustment: number | null
           notes: string | null
           price_per_kg_at_time: number
-          status: Database["public"]["Enums"]["delivery_status"]
           total_charge: number
           total_kg: number
           updated_at: string | null
@@ -134,7 +133,6 @@ export type Database = {
           manual_adjustment?: number | null
           notes?: string | null
           price_per_kg_at_time: number
-          status?: Database["public"]["Enums"]["delivery_status"]
           total_charge: number
           total_kg: number
           updated_at?: string | null
@@ -148,7 +146,6 @@ export type Database = {
           manual_adjustment?: number | null
           notes?: string | null
           price_per_kg_at_time?: number
-          status?: Database["public"]["Enums"]["delivery_status"]
           total_charge?: number
           total_kg?: number
           updated_at?: string | null
@@ -250,10 +247,7 @@ export type Database = {
           id: string
           method: string
           paid_at: string | null
-          payment_provider: string | null
-          payment_status: string | null
           reference: string | null
-          transaction_id: string | null
         }
         Insert: {
           amount_paid: number
@@ -264,10 +258,7 @@ export type Database = {
           id?: string
           method: string
           paid_at?: string | null
-          payment_provider?: string | null
-          payment_status?: string | null
           reference?: string | null
-          transaction_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -278,10 +269,7 @@ export type Database = {
           id?: string
           method?: string
           paid_at?: string | null
-          payment_provider?: string | null
-          payment_status?: string | null
           reference?: string | null
-          transaction_id?: string | null
         }
         Relationships: [
           {
@@ -461,7 +449,6 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "co_admin" | "staff" | "customer"
-      delivery_status: "pending" | "en_route" | "delivered"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -590,7 +577,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "co_admin", "staff", "customer"],
-      delivery_status: ["pending", "en_route", "delivered"],
     },
   },
 } as const

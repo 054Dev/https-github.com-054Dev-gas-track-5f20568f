@@ -16,10 +16,9 @@ interface HeaderProps {
     role?: string;
   };
   onLogout?: () => void;
-  children?: React.ReactNode;
 }
 
-export function Header({ user, onLogout, children }: HeaderProps) {
+export function Header({ user, onLogout }: HeaderProps) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -38,7 +37,6 @@ export function Header({ user, onLogout, children }: HeaderProps) {
         </Link>
 
         <div className="flex items-center gap-1 md:gap-2">
-          {children}
           <Button
             variant="ghost"
             size="icon"

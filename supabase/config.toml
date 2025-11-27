@@ -1,1 +1,7 @@
-project_id = "uecmcplmvjfegyegofym"
+project_id = "ltdbdamencicjnwfqvkm"
+
+[functions.send-notification]
+verify_jwt = true
+
+[functions.intasend-payment]
+verify_jwt = false

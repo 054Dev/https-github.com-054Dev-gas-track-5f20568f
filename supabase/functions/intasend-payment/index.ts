@@ -41,6 +41,16 @@ serve(async (req) => {
         throw new Error("Customer not found");
       }
 
+      // Map frontend payment methods to Intasend API method values
+      const methodMap: Record<string, string> = {
+        "mpesa": "M-PESA",
+        "airtel-money": "M-PESA", // Airtel Money uses same mobile money method
+        "bank-transfer": "BANK-PAYMENT",
+        "card": "CARD-PAYMENT"
+      };
+      
+      const intasendMethod = methodMap[paymentMethod] || "M-PESA";
+
       // Create payment collection request
       const intasendResponse = await fetch("https://api.intasend.com/api/v1/payment/collection/", {
         method: "POST",
@@ -55,7 +65,7 @@ serve(async (req) => {
           amount: amount,
           currency: "KES",
           api_ref: deliveryId || `payment-${Date.now()}`,
-          method: paymentMethod.toUpperCase(), // MPESA, AIRTEL-MONEY, BANK-TRANSFER, CARD
+          method: intasendMethod,
           name: customer.in_charge_name,
         }),
       });

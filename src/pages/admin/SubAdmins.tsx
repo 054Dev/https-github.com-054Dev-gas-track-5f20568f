@@ -78,33 +78,38 @@ export default function SubAdmins() {
     setLoading(true);
     
     try {
-      // Get all co_admin roles with their user profiles
+      // Get all co_admin user IDs first
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            id,
-            username,
-            full_name,
-            phone
-          )
-        `)
+        .select("user_id")
         .eq("role", "co_admin");
 
       if (rolesError) throw rolesError;
 
       if (rolesData && rolesData.length > 0) {
-        const subAdminsList: SubAdmin[] = rolesData.map((item: any) => ({
-          id: item.profiles.id,
-          username: item.profiles.username,
-          full_name: item.profiles.full_name,
-          phone: item.profiles.phone,
-          email: `${item.profiles.username}@system.local`, // Placeholder as we can't access auth emails from client
-          role: "co_admin",
-        }));
-        setSubAdmins(subAdminsList);
+        const userIds = rolesData.map((r) => r.user_id);
+        
+        // Get profiles for these users
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, phone")
+          .in("id", userIds);
+
+        if (profilesError) throw profilesError;
+
+        if (profilesData) {
+          const subAdminsList: SubAdmin[] = profilesData.map((profile) => ({
+            id: profile.id,
+            username: profile.username,
+            full_name: profile.full_name,
+            phone: profile.phone,
+            email: `${profile.username}@system.local`,
+            role: "co_admin",
+          }));
+          setSubAdmins(subAdminsList);
+        } else {
+          setSubAdmins([]);
+        }
       } else {
         setSubAdmins([]);
       }

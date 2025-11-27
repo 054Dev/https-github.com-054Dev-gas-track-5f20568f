@@ -178,21 +178,21 @@ export default function PlaceOrder() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={{ username: customer.username }} onLogout={handleLogout} />
       <SubNav role="customer" />
-      <div className="container py-8 flex-1">
-        <div className="mb-6">
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Place Order</h1>
-          <p className="text-muted-foreground">Select gas cylinders for delivery</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold">Place Order</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Select gas cylinders for delivery</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {orderItems.map((item) => (
             <Card key={item.cylinder_capacity_id}>
               <CardHeader>
-                <CardTitle>{item.capacity_kg}kg Cylinder</CardTitle>
+                <CardTitle className="text-base md:text-lg">{item.capacity_kg}kg Cylinder</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -204,7 +204,7 @@ export default function PlaceOrder() {
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="text-2xl font-bold">{item.quantity}</span>
+                  <span className="text-xl md:text-2xl font-bold">{item.quantity}</span>
                   <Button
                     variant="outline"
                     size="icon"
@@ -214,29 +214,29 @@ export default function PlaceOrder() {
                   </Button>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">Total Weight</p>
-                  <p className="text-xl font-semibold">{item.kg_contribution} kg</p>
+                  <p className="text-xs md:text-sm text-muted-foreground">Total Weight</p>
+                  <p className="text-lg md:text-xl font-semibold">{item.kg_contribution} kg</p>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle className="text-base md:text-lg">Order Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between text-lg">
+            <CardContent className="space-y-3 md:space-y-4">
+              <div className="flex justify-between text-sm md:text-lg">
                 <span>Total Weight:</span>
                 <span className="font-bold">{totalKg} kg</span>
               </div>
-              <div className="flex justify-between text-lg">
+              <div className="flex justify-between text-sm md:text-lg">
                 <span>Price per kg:</span>
                 <span className="font-bold">KES {customer.price_per_kg}</span>
               </div>
-              <div className="border-t pt-4 flex justify-between text-xl">
+              <div className="border-t pt-3 md:pt-4 flex justify-between text-base md:text-xl">
                 <span className="font-semibold">Total Bill:</span>
                 <span className="font-bold text-primary">
                   KES {totalBill.toLocaleString()}
@@ -247,30 +247,30 @@ export default function PlaceOrder() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Additional Notes</CardTitle>
+              <CardTitle className="text-base md:text-lg">Additional Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <Label htmlFor="notes">Delivery Instructions (Optional)</Label>
+              <Label htmlFor="notes" className="text-sm md:text-base">Delivery Instructions (Optional)</Label>
               <Textarea
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="E.g., Gate code, special instructions..."
-                rows={5}
-                className="mt-2"
+                rows={4}
+                className="mt-2 text-sm md:text-base"
               />
             </CardContent>
           </Card>
         </div>
 
-        <div className="mt-8 flex justify-center">
+        <div className="mt-6 md:mt-8 flex justify-center px-4">
           <Button
             size="lg"
             onClick={handleSubmitOrder}
             disabled={submitting || totalKg === 0}
-            className="gap-2"
+            className="gap-2 w-full md:w-auto"
           >
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
             {submitting ? "Placing Order..." : "Place Order"}
           </Button>
         </div>

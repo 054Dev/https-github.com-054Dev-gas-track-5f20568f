@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Package, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -64,6 +66,7 @@ export default function OrderTracking() {
   });
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     checkAuth();
@@ -237,58 +240,63 @@ export default function OrderTracking() {
         {/* Orders Table */}
         <Card>
           <CardHeader>
-            <CardTitle>All Orders</CardTitle>
-            <CardDescription>Complete order history with details</CardDescription>
+            <CardTitle className="text-base md:text-xl">All Orders</CardTitle>
+            <CardDescription className="text-xs md:text-sm">Complete order history with details</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead className="text-right">Weight (kg)</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
-                      <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No orders yet</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>
-                        {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell>
+            {deliveries.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground text-sm md:text-base">No orders yet</p>
+              </div>
+            ) : isMobile ? (
+              <div className="space-y-3">
+                {deliveries.map((delivery) => (
+                  <Card key={delivery.id} className="border">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">{delivery.customer.shop_name}</p>
+                          <p className="font-semibold">{delivery.customer.shop_name}</p>
                           <p className="text-xs text-muted-foreground">
                             {delivery.customer.in_charge_name}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
+                          </p>
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
+                        <Badge
+                          variant={
+                            delivery.status === "delivered"
+                              ? "default"
+                              : delivery.status === "en_route"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {delivery.status === "en_route" ? "En Route" : delivery.status}
+                        </Badge>
+                      </div>
+
+                      <div className="bg-muted p-2 rounded space-y-1">
+                        <div className="text-xs space-y-1">
                           {delivery.delivery_items.map((item, idx) => (
-                            <div key={idx} className="text-muted-foreground">
-                              {item.quantity}x {item.cylinder_capacities.capacity_kg}kg
+                            <div key={idx} className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                {item.quantity}x {item.cylinder_capacities.capacity_kg}kg
+                              </span>
+                              <span>{item.kg_contribution.toFixed(2)} kg</span>
                             </div>
                           ))}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {delivery.total_kg.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
+                        <div className="border-t pt-1 mt-2 flex justify-between font-semibold text-sm">
+                          <span>Total:</span>
+                          <span>{delivery.total_kg.toFixed(2)} kg</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2">
                         <div>
-                          <p className="font-medium">
+                          <p className="text-lg font-bold text-primary">
                             KES {delivery.total_charge.toLocaleString()}
                           </p>
                           {delivery.manual_adjustment !== 0 && (
@@ -298,13 +306,11 @@ export default function OrderTracking() {
                             </p>
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell>
                         <Select
                           value={delivery.status}
                           onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
                         >
-                          <SelectTrigger className="w-[130px]">
+                          <SelectTrigger className="w-[120px] h-8">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="bg-card z-50">
@@ -313,12 +319,84 @@ export default function OrderTracking() {
                             <SelectItem value="delivered">Delivered</SelectItem>
                           </SelectContent>
                         </Select>
-                      </TableCell>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead className="text-right">Weight (kg)</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveries.map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell>
+                          {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{delivery.customer.shop_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {delivery.customer.in_charge_name}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {delivery.delivery_items.map((item, idx) => (
+                              <div key={idx} className="text-muted-foreground">
+                                {item.quantity}x {item.cylinder_capacities.capacity_kg}kg
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {delivery.total_kg.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div>
+                            <p className="font-medium">
+                              KES {delivery.total_charge.toLocaleString()}
+                            </p>
+                            {delivery.manual_adjustment !== 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Adj: {delivery.manual_adjustment > 0 ? "+" : ""}
+                                {delivery.manual_adjustment}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={delivery.status}
+                            onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
+                          >
+                            <SelectTrigger className="w-[130px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card z-50">
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="en_route">En Route</SelectItem>
+                              <SelectItem value="delivered">Delivered</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

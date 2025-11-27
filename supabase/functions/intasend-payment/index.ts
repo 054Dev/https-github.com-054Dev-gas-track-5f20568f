@@ -12,9 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Use service role for backend operations
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const { action, ...data } = await req.json();
@@ -28,14 +29,15 @@ serve(async (req) => {
       const intasendApiKey = Deno.env.get("INTASEND_API_KEY");
       const intasendPublishableKey = Deno.env.get("INTASEND_PUBLISHABLE_KEY");
 
-      // Get customer details
-      const { data: customer } = await supabaseClient
+      // Get customer details using service role to bypass RLS
+      const { data: customer, error: customerError } = await supabaseAdmin
         .from("customers")
         .select("*")
         .eq("id", customerId)
         .single();
 
-      if (!customer) {
+      if (customerError || !customer) {
+        console.error("Customer fetch error:", customerError);
         throw new Error("Customer not found");
       }
 
@@ -80,19 +82,14 @@ serve(async (req) => {
       const { invoice_id, state, amount, currency, api_ref, account } = data;
 
       if (state === "COMPLETE") {
-        // Find the delivery
-        const { data: delivery } = await supabaseClient
+        // Find the delivery using service role
+        const { data: delivery } = await supabaseAdmin
           .from("deliveries")
           .select("*, customers(*)")
           .eq("id", api_ref)
           .single();
 
         if (delivery) {
-          // Create payment record using service role
-          const supabaseAdmin = createClient(
-            Deno.env.get("SUPABASE_URL") ?? "",
-            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-          );
 
           const { error: paymentError } = await supabaseAdmin
             .from("payments")
@@ -132,11 +129,6 @@ serve(async (req) => {
     if (action === "cash-payment") {
       // Record manual cash payment (admin only)
       const { customerId, deliveryId, amount, handledBy } = data;
-
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
 
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from("payments")

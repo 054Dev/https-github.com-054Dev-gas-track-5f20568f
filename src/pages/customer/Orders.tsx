@@ -263,21 +263,19 @@ export default function CustomerOrders() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          {delivery.status === "delivered" && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedPaymentDelivery({
-                                  id: delivery.id,
-                                  amount: delivery.total_charge + (delivery.manual_adjustment || 0)
-                                });
-                                setPaymentModalOpen(true);
-                              }}
-                            >
-                              Pay Now
-                            </Button>
-                          )}
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedPaymentDelivery({
+                                id: delivery.id,
+                                amount: delivery.total_charge + (delivery.manual_adjustment || 0)
+                              });
+                              setPaymentModalOpen(true);
+                            }}
+                          >
+                            Pay Now
+                          </Button>
                           {delivery.status === "pending" && (
                             <Button
                               variant="ghost"

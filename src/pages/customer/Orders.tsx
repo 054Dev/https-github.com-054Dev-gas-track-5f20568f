@@ -6,6 +6,8 @@ import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { NotificationBell } from "@/components/NotificationBell";
+import { PaymentModal } from "@/components/PaymentModal";
+import { PaymentHistory } from "@/components/PaymentHistory";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   Card,
@@ -55,6 +57,8 @@ export default function CustomerOrders() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPaymentDelivery, setSelectedPaymentDelivery] = useState<{id: string, amount: number} | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { notifications } = useNotifications(customerId || undefined);
@@ -213,7 +217,7 @@ export default function CustomerOrders() {
                   <TableHead className="text-right">Adjustment</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -258,18 +262,35 @@ export default function CustomerOrders() {
                         {delivery.notes || "-"}
                       </TableCell>
                       <TableCell className="text-right">
-                        {delivery.status === "pending" && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedDeliveryId(delivery.id);
-                              setDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {delivery.status === "delivered" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPaymentDelivery({
+                                  id: delivery.id,
+                                  amount: delivery.total_charge + (delivery.manual_adjustment || 0)
+                                });
+                                setPaymentModalOpen(true);
+                              }}
+                            >
+                              Pay Now
+                            </Button>
+                          )}
+                          {delivery.status === "pending" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDeliveryId(delivery.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -278,8 +299,26 @@ export default function CustomerOrders() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Payment History */}
+        {customerId && <PaymentHistory customerId={customerId} isAdmin={false} />}
       </main>
       <Footer />
+
+      {/* Payment Modal */}
+      {selectedPaymentDelivery && (
+        <PaymentModal
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          customerId={customerId!}
+          deliveryId={selectedPaymentDelivery.id}
+          amount={selectedPaymentDelivery.amount}
+          onSuccess={() => {
+            loadDeliveries(customerId!);
+            setSelectedPaymentDelivery(null);
+          }}
+        />
+      )}
       
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

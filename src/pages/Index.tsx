@@ -4,12 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, TrendingUp, Shield, Users } from "lucide-react";
+import { Mail, Phone, Linkedin } from "lucide-react";
 import logo from "@/assets/logo.png";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function Index() {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -92,62 +101,64 @@ export default function Index() {
         </div>
       </div>
 
-      {/* Features Section */}
-      <section id="features" className="container py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="bg-card p-6 rounded-lg shadow-card space-y-3">
-            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Package className="h-6 w-6 text-primary" />
-            </div>
-            <h3 className="font-semibold text-lg">Automated Billing</h3>
-            <p className="text-muted-foreground">
-              Calculate charges automatically based on cylinder capacity and customer-specific rates.
-            </p>
-          </div>
-
-          <div className="bg-card p-6 rounded-lg shadow-card space-y-3">
-            <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
-              <TrendingUp className="h-6 w-6 text-secondary" />
-            </div>
-            <h3 className="font-semibold text-lg">Payment Tracking</h3>
-            <p className="text-muted-foreground">
-              Track M-Pesa, bank transfers, and cash payments with automatic arrears management.
-            </p>
-          </div>
-
-          <div className="bg-card p-6 rounded-lg shadow-card space-y-3">
-            <div className="h-12 w-12 rounded-lg bg-success/10 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-success" />
-            </div>
-            <h3 className="font-semibold text-lg">Secure Receipts</h3>
-            <p className="text-muted-foreground">
-              Generate and archive professional receipts with timestamps and download capability.
-            </p>
-          </div>
-
-          <div className="bg-card p-6 rounded-lg shadow-card space-y-3">
-            <div className="h-12 w-12 rounded-lg bg-warning/10 flex items-center justify-center">
-              <Users className="h-6 w-6 text-warning" />
-            </div>
-            <h3 className="font-semibold text-lg">Multi-User Access</h3>
-            <p className="text-muted-foreground">
-              Separate portals for admin, staff, and customers with role-based permissions.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="container py-20">
         <div className="bg-gradient-to-r from-primary to-primary-glow rounded-2xl p-12 text-center text-primary-foreground">
           <h2 className="text-3xl font-bold mb-4">Ready to streamline your operations?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Contact our team to get started with Finegas Supply Management System
+            Contact our developer to get started with Finegas Supply Management System
           </p>
-          <Button asChild variant="secondary" size="lg">
-            <Link to="/login">Access Portal</Link>
-          </Button>
+          <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" size="lg">
+                Contact Developer
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Developer Contact Details</DialogTitle>
+                <DialogDescription>
+                  Get in touch with the system developer
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Email</p>
+                    <a href="mailto:devmimi2@gmail.com" className="text-sm text-muted-foreground hover:text-primary">
+                      devmimi2@gmail.com
+                    </a>
+                    <br />
+                    <a href="mailto:kibendi054@gmail.com" className="text-sm text-muted-foreground hover:text-primary">
+                      kibendi054@gmail.com
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Phone className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Phone / WhatsApp</p>
+                    <a href="tel:+254702255315" className="text-sm text-muted-foreground hover:text-primary block">
+                      +254 702 255 315
+                    </a>
+                    <a href="https://wa.me/254702255315" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                      Chat on WhatsApp
+                    </a>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Linkedin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">LinkedIn</p>
+                    <p className="text-sm text-muted-foreground">Coming soon</p>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
       <Footer />

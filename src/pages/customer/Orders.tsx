@@ -29,6 +29,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +63,7 @@ export default function CustomerOrders() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { notifications } = useNotifications(customerId || undefined);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     checkAuth();
@@ -204,48 +206,29 @@ export default function CustomerOrders() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Delivery History</CardTitle>
-            <CardDescription>All your gas deliveries</CardDescription>
+            <CardTitle className="text-base md:text-xl">Delivery History</CardTitle>
+            <CardDescription className="text-xs md:text-sm">All your gas deliveries</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">KG Delivered</TableHead>
-                  <TableHead className="text-right">Charge</TableHead>
-                  <TableHead className="text-right">Adjustment</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deliveries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
-                      <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No deliveries yet</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>
-                        {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {delivery.total_kg.toFixed(2)} kg
-                      </TableCell>
-                      <TableCell className="text-right">
-                        KES {delivery.total_charge.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {delivery.manual_adjustment !== 0
-                          ? `KES ${delivery.manual_adjustment.toFixed(2)}`
-                          : "-"}
-                      </TableCell>
-                      <TableCell>
+            {deliveries.length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                <p className="text-muted-foreground text-sm md:text-base">No deliveries yet</p>
+              </div>
+            ) : isMobile ? (
+              <div className="space-y-3">
+                {deliveries.map((delivery) => (
+                  <Card key={delivery.id} className="border">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
+                          </p>
+                          <p className="font-semibold text-base mt-1">
+                            {delivery.total_kg.toFixed(2)} kg
+                          </p>
+                        </div>
                         <Badge
                           variant={
                             delivery.status === "delivered"
@@ -257,49 +240,148 @@ export default function CustomerOrders() {
                         >
                           {delivery.status === "en_route" ? "En Route" : delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {delivery.notes || "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                      </div>
+
+                      <div className="bg-muted p-2 rounded space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Charge:</span>
+                          <span className="font-medium">KES {delivery.total_charge.toFixed(2)}</span>
+                        </div>
+                        {delivery.manual_adjustment !== 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Adjustment:</span>
+                            <span className="font-medium">KES {delivery.manual_adjustment.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {delivery.notes && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          Note: {delivery.notes}
+                        </p>
+                      )}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setSelectedPaymentDelivery({
+                              id: delivery.id,
+                              amount: delivery.total_charge + (delivery.manual_adjustment || 0)
+                            });
+                            setPaymentModalOpen(true);
+                          }}
+                        >
+                          Pay Now
+                        </Button>
+                        {delivery.status === "pending" && (
                           <Button
-                            variant="default"
+                            variant="ghost"
                             size="sm"
                             onClick={() => {
-                              setSelectedPaymentDelivery({
-                                id: delivery.id,
-                                amount: delivery.total_charge + (delivery.manual_adjustment || 0)
-                              });
-                              setPaymentModalOpen(true);
+                              setSelectedDeliveryId(delivery.id);
+                              setDeleteDialogOpen(true);
                             }}
                           >
-                            Pay Now
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
-                          {delivery.status === "pending" && (
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">KG Delivered</TableHead>
+                      <TableHead className="text-right">Charge</TableHead>
+                      <TableHead className="text-right">Adjustment</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveries.map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell>
+                          {format(new Date(delivery.delivery_date), "MMM dd, yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {delivery.total_kg.toFixed(2)} kg
+                        </TableCell>
+                        <TableCell className="text-right">
+                          KES {delivery.total_charge.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {delivery.manual_adjustment !== 0
+                            ? `KES ${delivery.manual_adjustment.toFixed(2)}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              delivery.status === "delivered"
+                                ? "default"
+                                : delivery.status === "en_route"
+                                ? "secondary"
+                                : "outline"
+                            }
+                          >
+                            {delivery.status === "en_route" ? "En Route" : delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {delivery.notes || "-"}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
-                              variant="ghost"
+                              variant="default"
                               size="sm"
                               onClick={() => {
-                                setSelectedDeliveryId(delivery.id);
-                                setDeleteDialogOpen(true);
+                                setSelectedPaymentDelivery({
+                                  id: delivery.id,
+                                  amount: delivery.total_charge + (delivery.manual_adjustment || 0)
+                                });
+                                setPaymentModalOpen(true);
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              Pay Now
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                            {delivery.status === "pending" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedDeliveryId(delivery.id);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Payment History */}
-        {customerId && <PaymentHistory customerId={customerId} isAdmin={false} />}
+        <div className="mt-6">
+          {customerId && <PaymentHistory customerId={customerId} isAdmin={false} />}
+        </div>
       </main>
       <Footer />
 

@@ -11,7 +11,19 @@ import { Header } from "@/components/Header";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
@@ -23,6 +35,8 @@ export default function Settings() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [showDeletionDialog, setShowDeletionDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -150,6 +164,77 @@ export default function Settings() {
     }
   };
 
+  const handleAccountDeletion = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // If user is customer, create deletion request
+      if (userRole === 'customer') {
+        const { error: requestError } = await supabase
+          .from("deletion_requests")
+          .insert({
+            user_id: user.id,
+            reason: deletionReason,
+            status: 'pending'
+          });
+
+        if (requestError) throw requestError;
+
+        // Create notification for admins
+        const { data: customers } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (customers) {
+          await supabase
+            .from("notifications")
+            .insert({
+              customer_id: customers.id,
+              type: 'account_deletion_request',
+              message: `Account deletion requested by ${fullName || username}. Reason: ${deletionReason || 'No reason provided'}`
+            });
+        }
+
+        toast({
+          title: "Request Submitted",
+          description: "Your account deletion request has been sent to administrators",
+        });
+        setShowDeletionDialog(false);
+        setDeletionReason("");
+      } else {
+        // Admin, co_admin, staff must also request deletion (for security)
+        const { error: requestError } = await supabase
+          .from("deletion_requests")
+          .insert({
+            user_id: user.id,
+            reason: deletionReason || 'Self-requested account deletion',
+            status: 'pending'
+          });
+
+        if (requestError) throw requestError;
+
+        toast({
+          title: "Request Submitted",
+          description: "Your account deletion request has been created. Another admin will need to approve it.",
+        });
+        setShowDeletionDialog(false);
+        setDeletionReason("");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -253,6 +338,57 @@ export default function Settings() {
                   {loading ? "Changing Password..." : "Change Password"}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Delete Account */}
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Danger Zone</CardTitle>
+              <CardDescription>
+                Request account deletion (requires admin approval)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AlertDialog open={showDeletionDialog} onOpenChange={setShowDeletionDialog}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    Request Account Deletion
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Request Account Deletion?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-4">
+                      <p>
+                        This will send a deletion request to the administrators. 
+                        Your account will remain active until an admin approves your request.
+                      </p>
+                      <div className="space-y-2">
+                        <Label htmlFor="reason">Reason for deletion (optional)</Label>
+                        <Textarea
+                          id="reason"
+                          placeholder="Why would you like to delete your account?"
+                          value={deletionReason}
+                          onChange={(e) => setDeletionReason(e.target.value)}
+                          rows={3}
+                        />
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleAccountDeletion}
+                      disabled={loading}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {loading ? "Processing..." : 'Submit Request'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>

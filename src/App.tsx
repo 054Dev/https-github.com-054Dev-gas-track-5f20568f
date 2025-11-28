@@ -19,6 +19,7 @@ import AdminCustomers from "./pages/admin/Customers";
 import AdminSubAdmins from "./pages/admin/SubAdmins";
 import AdminCreateDelivery from "./pages/admin/CreateDelivery";
 import CustomerDetail from "./pages/admin/CustomerDetail";
+import DeletionRequests from "./pages/admin/DeletionRequests";
 import CustomerDashboard from "./pages/customer/Dashboard";
 import AdminOrders from "./pages/admin/Orders";
 import AdminOrderTracking from "./pages/admin/OrderTracking";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/services" element={<AdminServices />} />
             <Route path="/admin/sub-admins" element={<AdminSubAdmins />} />
+            <Route path="/admin/deletion-requests" element={<DeletionRequests />} />
             <Route path="/admin/contacts" element={<AdminContacts />} />
             <Route path="/admin/customers" element={<AdminCustomers />} />
             <Route path="/admin/customers/:customerId" element={<CustomerDetail />} />

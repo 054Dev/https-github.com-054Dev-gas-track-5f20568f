@@ -150,6 +150,26 @@ export default function PlaceOrder() {
 
       if (updateError) throw updateError;
 
+      // Notify admin if customer has pending balance
+      if (customer.arrears_balance > 0) {
+        await supabase.from("notifications").insert({
+          customer_id: customer.id,
+          type: "pending_balance_order",
+          message: `${customer.shop_name} placed an order with pending balance of KES ${customer.arrears_balance.toLocaleString()}`,
+          status: "pending",
+        });
+      }
+
+      // Notify customer of their pending balance
+      if (newBalance > 0) {
+        await supabase.from("notifications").insert({
+          customer_id: customer.id,
+          type: "pending_balance_reminder",
+          message: `You have a pending balance of KES ${newBalance.toLocaleString()}. Please clear your balance soon.`,
+          status: "pending",
+        });
+      }
+
       toast({
         title: "Success",
         description: "Order placed successfully",

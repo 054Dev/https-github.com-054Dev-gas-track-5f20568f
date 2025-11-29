@@ -287,6 +287,53 @@ export default function DeletionRequests() {
                       >
                         Reject Request
                       </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          // Get customer phone from profile
+                          supabase.from("customers")
+                            .select("phone")
+                            .eq("user_id", request.user_id)
+                            .maybeSingle()
+                            .then(({ data }) => {
+                              if (data?.phone) {
+                                window.location.href = `tel:${data.phone}`;
+                              } else {
+                                toast({
+                                  title: "No phone number",
+                                  description: "Customer phone not found",
+                                  variant: "destructive",
+                                });
+                              }
+                            });
+                        }}
+                      >
+                        Call Customer
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          supabase.from("customers")
+                            .select("phone")
+                            .eq("user_id", request.user_id)
+                            .maybeSingle()
+                            .then(({ data }) => {
+                              if (data?.phone) {
+                                window.open(`https://wa.me/${data.phone.replace(/\+/g, "")}`, "_blank");
+                              } else {
+                                toast({
+                                  title: "No phone number",
+                                  description: "Customer phone not found",
+                                  variant: "destructive",
+                                });
+                              }
+                            });
+                        }}
+                      >
+                        WhatsApp
+                      </Button>
                     </div>
                   )}
                 </CardContent>

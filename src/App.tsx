@@ -20,6 +20,7 @@ import AdminSubAdmins from "./pages/admin/SubAdmins";
 import AdminCreateDelivery from "./pages/admin/CreateDelivery";
 import CustomerDetail from "./pages/admin/CustomerDetail";
 import DeletionRequests from "./pages/admin/DeletionRequests";
+import AdminReceiptsAndOrders from "./pages/admin/ReceiptsAndOrders";
 import CustomerDashboard from "./pages/customer/Dashboard";
 import AdminOrders from "./pages/admin/Orders";
 import AdminOrderTracking from "./pages/admin/OrderTracking";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/admin/receipts-orders" element={<AdminReceiptsAndOrders />} />
             <Route path="/admin/order-tracking" element={<AdminOrderTracking />} />
             <Route path="/admin/create-delivery" element={<AdminCreateDelivery />} />
             <Route path="/admin/users" element={<AdminUsers />} />

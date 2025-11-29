@@ -6,7 +6,7 @@ import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Receipt, DollarSign } from "lucide-react";
+import { Package, Receipt, DollarSign, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -33,6 +33,19 @@ export default function CustomerDashboard() {
     totalReceipts: 0,
     pendingBalance: 0,
   });
+  const [hiddenCards, setHiddenCards] = useState<string[]>(() => {
+    const saved = localStorage.getItem("customerHiddenCards");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showHidden, setShowHidden] = useState(false);
+
+  const toggleCardVisibility = (cardId: string) => {
+    const newHidden = hiddenCards.includes(cardId)
+      ? hiddenCards.filter(id => id !== cardId)
+      : [...hiddenCards, cardId];
+    setHiddenCards(newHidden);
+    localStorage.setItem("customerHiddenCards", JSON.stringify(newHidden));
+  };
 
   useEffect(() => {
     checkAuth();
@@ -168,7 +181,7 @@ export default function CustomerDashboard() {
         <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 md:mb-8 space-y-4">
           <Card className="bg-primary/10 border-primary/20">
             <CardContent className="py-4">
               <div className="flex items-center justify-between">
@@ -187,51 +200,95 @@ export default function CustomerDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          {stats.pendingBalance > 0 && (
+            <Card className="bg-warning/10 border-warning/20">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-8 w-8 text-warning" />
+                  <div>
+                    <h3 className="font-semibold text-warning">Pending Balance</h3>
+                    <p className="text-sm text-muted-foreground">
+                      You have an outstanding balance of KES {stats.pendingBalance.toLocaleString()}. Please clear your balance soon.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Deliveries
-              </CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.recentDeliveries}</div>
-              <p className="text-xs text-muted-foreground">
-                All-time deliveries
-              </p>
-            </CardContent>
-          </Card>
+          <div className="col-span-full flex justify-end mb-2">
+            <Button variant="outline" size="sm" onClick={() => setShowHidden(!showHidden)}>
+              {showHidden ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+              {showHidden ? "Hide" : "Show"} Hidden Cards
+            </Button>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Receipts</CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalReceipts}</div>
-              <p className="text-xs text-muted-foreground">
-                Available for download
-              </p>
-            </CardContent>
-          </Card>
+          {(!hiddenCards.includes("deliveries") || showHidden) && (
+            <Card className={hiddenCards.includes("deliveries") ? "opacity-50" : ""}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Deliveries
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleCardVisibility("deliveries")}>
+                    {hiddenCards.includes("deliveries") ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.recentDeliveries}</div>
+                <p className="text-xs text-muted-foreground">
+                  All-time deliveries
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending Balance
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">
-                KES {stats.pendingBalance.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">Outstanding amount</p>
-            </CardContent>
-          </Card>
+          {(!hiddenCards.includes("receipts") || showHidden) && (
+            <Card className={hiddenCards.includes("receipts") ? "opacity-50" : ""}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Receipts</CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleCardVisibility("receipts")}>
+                    {hiddenCards.includes("receipts") ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalReceipts}</div>
+                <p className="text-xs text-muted-foreground">
+                  Available for download
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {(!hiddenCards.includes("balance") || showHidden) && (
+            <Card className={hiddenCards.includes("balance") ? "opacity-50" : ""}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Pending Balance
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleCardVisibility("balance")}>
+                    {hiddenCards.includes("balance") ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                  <DollarSign className="h-4 w-4 text-warning" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-warning">
+                  KES {stats.pendingBalance.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">Outstanding amount</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2">

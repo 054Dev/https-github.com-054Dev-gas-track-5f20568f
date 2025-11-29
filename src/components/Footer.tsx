@@ -101,9 +101,19 @@ export function Footer() {
       <footer className="border-t bg-card mt-auto py-4 md:py-6">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
-              © 2025 Fine Gas Limited. All rights reserved.
-            </p>
+            <div className="text-center md:text-left">
+              <p className="text-xs md:text-sm text-muted-foreground">
+                © 2025 Fine Gas Limited. All rights reserved.
+              </p>
+              <a 
+                href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline"
+              >
+                LinkedIn: Dun Mimi Ndegwa
+              </a>
+            </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Button
                 variant="outline"

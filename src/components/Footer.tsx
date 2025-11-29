@@ -1,4 +1,4 @@
-import { Phone, MessageCircle, Bell } from "lucide-react";
+import { Phone, MessageCircle, Bell, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import {
@@ -19,6 +19,7 @@ const ADMIN_EMAIL = "admin@finegas.com";
 
 export function Footer() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [devDialogOpen, setDevDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     contact: "",
@@ -101,18 +102,18 @@ export function Footer() {
       <footer className="border-t bg-card mt-auto py-4 md:py-6">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="text-xs md:text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <p className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
                 © 2025 Fine Gas Limited. All rights reserved.
               </p>
-              <a 
-                href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline"
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDevDialogOpen(true)}
+                className="h-6 px-2"
               >
-                LinkedIn: Dun Mimi Ndegwa
-              </a>
+                <Info className="h-3 w-3" />
+              </Button>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
               <Button
@@ -207,6 +208,36 @@ export function Footer() {
               Send Message
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={devDialogOpen} onOpenChange={setDevDialogOpen}>
+        <DialogContent className="w-[95vw] max-w-md mx-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg md:text-xl">Developer Information</DialogTitle>
+            <DialogDescription className="text-xs md:text-sm">
+              About the developer of this application
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold mb-2">Dun Mimi Ndegwa</h3>
+              <p className="text-sm text-muted-foreground">Full-Stack Developer</p>
+            </div>
+            <div className="space-y-2">
+              <a 
+                href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+                LinkedIn Profile
+              </a>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

@@ -291,7 +291,7 @@ export default function CustomerDashboard() {
           )}
         </div>
 
-        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2">
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-3">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/place-order")}>
             <CardHeader>
               <CardTitle>Place Order</CardTitle>
@@ -308,12 +308,25 @@ export default function CustomerDashboard() {
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/orders")}>
             <CardHeader>
               <CardTitle>My Orders</CardTitle>
-              <p className="text-sm text-muted-foreground">View your order history and receipts</p>
+              <p className="text-sm text-muted-foreground">View your order history</p>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline">
+                <Package className="mr-2 h-4 w-4" />
+                View Orders
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/customer/receipts")}>
+            <CardHeader>
+              <CardTitle>My Receipts</CardTitle>
+              <p className="text-sm text-muted-foreground">View payment receipts</p>
             </CardHeader>
             <CardContent>
               <Button className="w-full" variant="outline">
                 <Receipt className="mr-2 h-4 w-4" />
-                View Orders
+                View Receipts
               </Button>
             </CardContent>
           </Card>

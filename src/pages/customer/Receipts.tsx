@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
@@ -7,19 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Receipt } from "lucide-react";
 import { format } from "date-fns";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -40,22 +35,62 @@ interface Payment {
   transaction_id: string;
 }
 
-interface PaymentHistoryProps {
-  customerId: string;
-  isAdmin?: boolean;
-}
-
-export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryProps) {
+export default function Receipts() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [customerName, setCustomerName] = useState("");
-  const isMobile = useIsMobile();
+  const [customerId, setCustomerId] = useState("");
 
   useEffect(() => {
-    loadPayments();
-    loadCustomerName();
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (customerId) {
+      loadPayments();
+      loadCustomerName();
+    }
   }, [customerId]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (!roleData || roleData.role !== "customer") {
+      navigate("/");
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    setUser({ ...session.user, ...profile, role: roleData.role });
+
+    const { data: customer } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .single();
+
+    if (customer) {
+      setCustomerId(customer.id);
+    }
+  };
 
   const loadCustomerName = async () => {
     const { data } = await supabase
@@ -93,7 +128,6 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
                        payment.method === "paypal" ? "PayPal" :
                        payment.method;
 
-    // Create HTML receipt for download
     const receiptHTML = `
 <!DOCTYPE html>
 <html>
@@ -176,117 +210,96 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
       case "mpesa": return "M-Pesa";
       case "airtel-money": return "Airtel Money";
       case "cash": return "Cash";
-      default: return method;
+      case "equity-bank": return "Equity Bank";
+      case "family-bank": return "Family Bank";
+      case "kcb": return "KCB Bank";
+      case "cooperative-bank": return "Cooperative Bank";
+      case "paypal": return "PayPal";
+      default: return method.charAt(0).toUpperCase() + method.slice(1);
     }
   };
 
-  if (loading) {
-    return <div>Loading payments...</div>;
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
+  if (loading || !user) {
+    return <div>Loading...</div>;
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base md:text-xl">
-            <Receipt className="h-4 w-4 md:h-5 md:w-5" />
-            Payment History
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            All payment transactions for this customer
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {payments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8 text-sm md:text-base">
-              No payments recorded yet
-            </p>
-          ) : isMobile ? (
-            <div className="space-y-3">
-              {payments.map((payment) => (
-                <Card 
-                  key={payment.id} 
-                  className="cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => setSelectedPayment(payment)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-base">
-                          KES {payment.amount_paid.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(payment.paid_at), "MMM dd, yyyy HH:mm")}
-                        </p>
-                      </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header user={user} onLogout={handleLogout} />
+      <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
+        <div className="mb-4 md:mb-6">
+          <BackButton />
+        </div>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Receipt className="h-6 w-6 md:h-8 md:w-8" />
+            My Receipts
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            View and download your payment receipts
+          </p>
+        </div>
+
+        {payments.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No payment receipts found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {payments.map((payment) => (
+              <Card 
+                key={payment.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setSelectedPayment(payment)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">
+                        KES {payment.amount_paid.toLocaleString()}
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {format(new Date(payment.paid_at), "EEEE, MMMM dd, yyyy 'at' HH:mm")}
+                      </CardDescription>
+                    </div>
+                    <Receipt className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2 items-center justify-between">
+                    <div className="flex gap-2 items-center">
+                      <Badge variant="outline">
+                        {getMethodDisplay(payment.method)}
+                      </Badge>
                       <Badge variant={payment.payment_status === "completed" ? "default" : "secondary"}>
                         {payment.payment_status}
                       </Badge>
                     </div>
-                    <div className="flex gap-2 items-center">
-                      <Badge variant="outline" className="text-xs">
-                        {getMethodDisplay(payment.method)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {payment.reference?.substring(0, 16)}...
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Reference</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="text-sm">
-                        {format(new Date(payment.paid_at), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        KES {payment.amount_paid.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {getMethodDisplay(payment.method)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={payment.payment_status === "completed" ? "default" : "secondary"}>
-                          {payment.payment_status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">
-                        {payment.reference}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadReceipt(payment)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadReceipt(payment);
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Dialog open={!!selectedPayment} onOpenChange={() => setSelectedPayment(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -316,6 +329,8 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
           )}
         </DialogContent>
       </Dialog>
-    </>
+
+      <Footer />
+    </div>
   );
 }

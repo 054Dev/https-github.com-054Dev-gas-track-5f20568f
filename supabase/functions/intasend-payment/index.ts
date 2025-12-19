@@ -101,7 +101,7 @@ serve(async (req) => {
 
         if (delivery) {
 
-          const { error: paymentError } = await supabaseAdmin
+          const { data: payment, error: paymentError } = await supabaseAdmin
             .from("payments")
             .insert({
               customer_id: delivery.customer_id,
@@ -112,7 +112,9 @@ serve(async (req) => {
               payment_status: "completed",
               transaction_id: invoice_id,
               reference: invoice_id,
-            });
+            })
+            .select()
+            .single();
 
           if (paymentError) {
             console.error("Payment insert error:", paymentError);
@@ -125,6 +127,34 @@ serve(async (req) => {
             .from("customers")
             .update({ arrears_balance: newArrears })
             .eq("id", delivery.customer_id);
+
+          // Send receipt email if customer has email
+          if (delivery.customers.email && payment) {
+            try {
+              const supabaseUrl = Deno.env.get("SUPABASE_URL");
+              const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+              
+              await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${anonKey}`,
+                },
+                body: JSON.stringify({
+                  paymentId: payment.id,
+                  customerEmail: delivery.customers.email,
+                  customerName: delivery.customers.in_charge_name,
+                  amount: parseFloat(amount),
+                  method: account || "mobile_money",
+                  transactionId: invoice_id,
+                  paidAt: payment.paid_at,
+                }),
+              });
+              console.log("Receipt email sent");
+            } catch (emailError) {
+              console.error("Failed to send receipt email:", emailError);
+            }
+          }
 
           console.log("Payment recorded successfully");
         }
@@ -139,6 +169,13 @@ serve(async (req) => {
     if (action === "cash-payment") {
       // Record manual cash payment (admin only)
       const { customerId, deliveryId, amount, handledBy } = data;
+
+      // Get customer details first
+      const { data: customer } = await supabaseAdmin
+        .from("customers")
+        .select("email, in_charge_name, arrears_balance")
+        .eq("id", customerId)
+        .single();
 
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from("payments")
@@ -161,18 +198,40 @@ serve(async (req) => {
       }
 
       // Update customer arrears
-      const { data: customer } = await supabaseAdmin
-        .from("customers")
-        .select("arrears_balance")
-        .eq("id", customerId)
-        .single();
-
       if (customer) {
         const newArrears = Math.max(0, (customer.arrears_balance || 0) - amount);
         await supabaseAdmin
           .from("customers")
           .update({ arrears_balance: newArrears })
           .eq("id", customerId);
+
+        // Send receipt email if customer has email
+        if (customer.email && payment) {
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL");
+            const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+            
+            await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${anonKey}`,
+              },
+              body: JSON.stringify({
+                paymentId: payment.id,
+                customerEmail: customer.email,
+                customerName: customer.in_charge_name,
+                amount: amount,
+                method: "cash",
+                transactionId: payment.reference,
+                paidAt: payment.paid_at,
+              }),
+            });
+            console.log("Receipt email sent for cash payment");
+          } catch (emailError) {
+            console.error("Failed to send receipt email:", emailError);
+          }
+        }
       }
 
       return new Response(

@@ -360,6 +360,57 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_template_settings: {
+        Row: {
+          company_name: string
+          created_at: string
+          custom_field_1_label: string | null
+          custom_field_1_value: string | null
+          custom_field_2_label: string | null
+          custom_field_2_value: string | null
+          custom_field_3_label: string | null
+          custom_field_3_value: string | null
+          footer_text: string | null
+          id: string
+          logo_url: string | null
+          show_payment_method: boolean | null
+          show_transaction_id: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          custom_field_1_label?: string | null
+          custom_field_1_value?: string | null
+          custom_field_2_label?: string | null
+          custom_field_2_value?: string | null
+          custom_field_3_label?: string | null
+          custom_field_3_value?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          show_payment_method?: boolean | null
+          show_transaction_id?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          custom_field_1_label?: string | null
+          custom_field_1_value?: string | null
+          custom_field_2_label?: string | null
+          custom_field_2_value?: string | null
+          custom_field_3_label?: string | null
+          custom_field_3_value?: string | null
+          footer_text?: string | null
+          id?: string
+          logo_url?: string | null
+          show_payment_method?: boolean | null
+          show_transaction_id?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       receipts: {
         Row: {
           created_at: string | null

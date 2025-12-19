@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Download, FileText, DollarSign } from "lucide-react";
+import { Download, FileText, DollarSign, Settings } from "lucide-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -49,6 +49,15 @@ interface Delivery {
   };
 }
 
+interface TemplateSettings {
+  companyName: string;
+  logoUrl: string | null;
+  footerText: string | null;
+  showTransactionId: boolean;
+  showPaymentMethod: boolean;
+  customFields: { label: string; value: string }[];
+}
+
 export default function ReceiptsAndOrders() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -58,9 +67,11 @@ export default function ReceiptsAndOrders() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
 
   useEffect(() => {
     checkAuth();
+    fetchTemplateSettings();
   }, []);
 
   useEffect(() => {
@@ -68,6 +79,34 @@ export default function ReceiptsAndOrders() {
       loadData();
     }
   }, [user, selectedDate, showAll]);
+
+  const fetchTemplateSettings = async () => {
+    const { data } = await supabase
+      .from("receipt_template_settings")
+      .select("*")
+      .single();
+    
+    if (data) {
+      setTemplateSettings({
+        companyName: data.company_name,
+        logoUrl: data.logo_url,
+        footerText: data.footer_text,
+        showTransactionId: data.show_transaction_id,
+        showPaymentMethod: data.show_payment_method,
+        customFields: [
+          data.custom_field_1_label && data.custom_field_1_value
+            ? { label: data.custom_field_1_label, value: data.custom_field_1_value }
+            : null,
+          data.custom_field_2_label && data.custom_field_2_value
+            ? { label: data.custom_field_2_label, value: data.custom_field_2_value }
+            : null,
+          data.custom_field_3_label && data.custom_field_3_value
+            ? { label: data.custom_field_3_label, value: data.custom_field_3_value }
+            : null,
+        ].filter(Boolean) as { label: string; value: string }[],
+      });
+    }
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -282,9 +321,17 @@ export default function ReceiptsAndOrders() {
         <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold">Receipts & Sales</h1>
-          <p className="text-sm md:text-base text-muted-foreground">View and download payment receipts and sales records</p>
+        <div className="mb-6 md:mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Receipts & Sales</h1>
+            <p className="text-sm md:text-base text-muted-foreground">View and download payment receipts and sales records</p>
+          </div>
+          {(user?.role === "admin" || user?.role === "co_admin") && (
+            <Button variant="outline" onClick={() => navigate("/admin/receipt-settings")}>
+              <Settings className="h-4 w-4 mr-2" />
+              Receipt Template
+            </Button>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -440,6 +487,7 @@ export default function ReceiptsAndOrders() {
                 transactionId={selectedPayment.transaction_id}
                 reference={selectedPayment.reference}
                 status={selectedPayment.payment_status}
+                templateSettings={templateSettings || undefined}
               />
               <Button 
                 className="w-full" 

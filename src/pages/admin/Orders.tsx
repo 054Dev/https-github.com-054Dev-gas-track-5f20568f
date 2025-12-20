@@ -40,8 +40,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, DollarSign } from "lucide-react";
 import { format } from "date-fns";
+import { CashPaymentModal } from "@/components/CashPaymentModal";
 
 interface Customer {
   id: string;
@@ -57,6 +58,7 @@ interface Delivery {
   manual_adjustment: number;
   notes: string;
   status: "pending" | "en_route" | "delivered";
+  customer_id: string;
   customer: {
     shop_name: string;
   };
@@ -68,6 +70,8 @@ export default function Orders() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [cashPaymentOpen, setCashPaymentOpen] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const [newDelivery, setNewDelivery] = useState({
     customer_id: "",
     total_kg: "",
@@ -135,6 +139,7 @@ export default function Orders() {
         manual_adjustment,
         notes,
         status,
+        customer_id,
         customer:customers(shop_name)
       `)
       .order("delivery_date", { ascending: false })
@@ -274,6 +279,11 @@ export default function Orders() {
     navigate("/login");
   };
 
+  const handleRecordPayment = (delivery: Delivery) => {
+    setSelectedDelivery(delivery);
+    setCashPaymentOpen(true);
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -394,12 +404,13 @@ export default function Orders() {
                     <TableHead className="text-right text-xs md:text-sm">Adjustment</TableHead>
                     <TableHead className="text-xs md:text-sm">Status</TableHead>
                     <TableHead className="text-xs md:text-sm">Notes</TableHead>
+                    <TableHead className="text-xs md:text-sm">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {deliveries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8">
                         <Package className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-2" />
                         <p className="text-sm md:text-base text-muted-foreground">No deliveries logged yet</p>
                       </TableCell>
@@ -440,6 +451,16 @@ export default function Orders() {
                         <TableCell className="max-w-xs truncate text-xs md:text-sm">
                           {delivery.notes || "-"}
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRecordPayment(delivery)}
+                          >
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Record Payment
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -448,6 +469,16 @@ export default function Orders() {
             </div>
           </CardContent>
         </Card>
+
+        {selectedDelivery && (
+          <CashPaymentModal
+            open={cashPaymentOpen}
+            onOpenChange={setCashPaymentOpen}
+            customerId={selectedDelivery.customer_id}
+            deliveryId={selectedDelivery.id}
+            onSuccess={loadDeliveries}
+          />
+        )}
       </main>
       <Footer />
     </div>

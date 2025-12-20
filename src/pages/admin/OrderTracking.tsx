@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp } from "lucide-react";
+import { Package, TrendingUp, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CashPaymentModal } from "@/components/CashPaymentModal";
 
 interface Delivery {
   id: string;
@@ -42,6 +43,7 @@ interface Delivery {
   manual_adjustment: number;
   notes: string;
   status: "pending" | "en_route" | "delivered";
+  customer_id: string;
   customer: {
     shop_name: string;
     in_charge_name: string;
@@ -64,6 +66,8 @@ export default function OrderTracking() {
     totalKg: 0,
     totalRevenue: 0,
   });
+  const [cashPaymentOpen, setCashPaymentOpen] = useState(false);
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -117,6 +121,7 @@ export default function OrderTracking() {
         manual_adjustment,
         notes,
         status,
+        customer_id,
         customer:customers(shop_name, in_charge_name),
         delivery_items(
           quantity,
@@ -179,6 +184,11 @@ export default function OrderTracking() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
+  };
+
+  const handleRecordPayment = (delivery: Delivery) => {
+    setSelectedDelivery(delivery);
+    setCashPaymentOpen(true);
   };
 
   if (loading || !user) return null;
@@ -294,31 +304,42 @@ export default function OrderTracking() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-center pt-2">
-                        <div>
-                          <p className="text-lg font-bold text-primary">
-                            KES {delivery.total_charge.toLocaleString()}
-                          </p>
-                          {delivery.manual_adjustment !== 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Adj: {delivery.manual_adjustment > 0 ? "+" : ""}
-                              {delivery.manual_adjustment}
+                      <div className="flex flex-col gap-2 pt-2">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-lg font-bold text-primary">
+                              KES {delivery.total_charge.toLocaleString()}
                             </p>
-                          )}
+                            {delivery.manual_adjustment !== 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                Adj: {delivery.manual_adjustment > 0 ? "+" : ""}
+                                {delivery.manual_adjustment}
+                              </p>
+                            )}
+                          </div>
+                          <Select
+                            value={delivery.status}
+                            onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
+                          >
+                            <SelectTrigger className="w-[120px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card z-50">
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="en_route">En Route</SelectItem>
+                              <SelectItem value="delivered">Delivered</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Select
-                          value={delivery.status}
-                          onValueChange={(value) => updateStatus(delivery.id, value as "pending" | "en_route" | "delivered")}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleRecordPayment(delivery)}
                         >
-                          <SelectTrigger className="w-[120px] h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-card z-50">
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="en_route">En Route</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <DollarSign className="mr-2 h-4 w-4" />
+                          Record Payment
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -335,6 +356,7 @@ export default function OrderTracking() {
                       <TableHead className="text-right">Weight (kg)</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -391,6 +413,16 @@ export default function OrderTracking() {
                             </SelectContent>
                           </Select>
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRecordPayment(delivery)}
+                          >
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Record Payment
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -399,6 +431,16 @@ export default function OrderTracking() {
             )}
           </CardContent>
         </Card>
+
+        {selectedDelivery && (
+          <CashPaymentModal
+            open={cashPaymentOpen}
+            onOpenChange={setCashPaymentOpen}
+            customerId={selectedDelivery.customer_id}
+            deliveryId={selectedDelivery.id}
+            onSuccess={loadDeliveries}
+          />
+        )}
       </main>
       <Footer />
     </div>

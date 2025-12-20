@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, Receipt } from "lucide-react";
 import { format } from "date-fns";
+import { downloadReceiptPDF } from "@/lib/pdf-receipt";
 import {
   Dialog,
   DialogContent,
@@ -156,92 +157,17 @@ export default function Receipts() {
     setLoading(false);
   };
 
-  const downloadReceipt = async (payment: Payment) => {
-    const methodName = payment.method === "mpesa" ? "M-Pesa" :
-                       payment.method === "airtel-money" ? "Airtel-Money" :
-                       payment.method === "cash" ? "Cash" :
-                       payment.method === "equity-bank" ? "Equity-Bank" :
-                       payment.method === "family-bank" ? "Family-Bank" :
-                       payment.method === "kcb" ? "KCB" :
-                       payment.method === "cooperative-bank" ? "Cooperative-Bank" :
-                       payment.method === "paypal" ? "PayPal" :
-                       payment.method;
-
-    const receiptHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
-    .receipt { border: 2px solid #333; padding: 30px; border-radius: 8px; }
-    .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-    .header h1 { margin: 0; font-size: 24px; }
-    .header p { margin: 5px 0; color: #666; }
-    .section { margin: 20px 0; padding: 15px 0; border-bottom: 1px solid #ddd; }
-    .row { display: flex; justify-content: space-between; margin: 10px 0; }
-    .label { color: #666; font-size: 14px; }
-    .value { font-weight: bold; }
-    .amount { background: #f5f5f5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }
-    .amount .total { font-size: 32px; font-weight: bold; color: #2563eb; }
-    .footer { text-align: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid #333; color: #666; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="receipt">
-    <div class="header">
-      <h1>FINE GAS LIMITED</h1>
-      <p>Payment Receipt</p>
-    </div>
-    
-    <div class="section">
-      <div class="row">
-        <span class="label">CUSTOMER NAME</span>
-        <span class="value">${customerName}</span>
-      </div>
-      <div class="row">
-        <span class="label">DATE & TIME</span>
-        <span class="value">${format(new Date(payment.paid_at), "EEEE, MMMM dd, yyyy 'at' HH:mm")}</span>
-      </div>
-    </div>
-    
-    <div class="section">
-      <div class="row">
-        <span class="label">Payment Method</span>
-        <span class="value">${methodName}</span>
-      </div>
-      <div class="row">
-        <span class="label">Status</span>
-        <span class="value">${payment.payment_status.toUpperCase()}</span>
-      </div>
-      <div class="row">
-        <span class="label">Transaction ID</span>
-        <span class="value" style="font-size: 11px;">${payment.transaction_id || payment.reference}</span>
-      </div>
-    </div>
-    
-    <div class="amount">
-      <div class="label">TOTAL AMOUNT PAID</div>
-      <div class="total">KES ${payment.amount_paid.toLocaleString()}</div>
-    </div>
-    
-    <div class="footer">
-      <p>Thank you for your payment!</p>
-      <p>This is an official receipt from Fine Gas Limited</p>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([receiptHTML], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${customerName}-${methodName}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadReceipt = (payment: Payment) => {
+    downloadReceiptPDF({
+      customerName,
+      amount: payment.amount_paid,
+      method: payment.method,
+      date: payment.paid_at,
+      transactionId: payment.transaction_id,
+      reference: payment.reference,
+      status: payment.payment_status,
+      templateSettings: templateSettings || undefined,
+    });
   };
 
   const getMethodDisplay = (method: string) => {

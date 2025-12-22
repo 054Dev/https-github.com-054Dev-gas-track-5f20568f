@@ -6,9 +6,10 @@ import { BackButton } from "@/components/BackButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Package, DollarSign, AlertCircle, Contact, Eye, EyeOff } from "lucide-react";
+import { Users, Package, DollarSign, AlertCircle, Eye, EyeOff, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
+import { DebtsReportModal } from "@/components/DebtsReportModal";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -19,12 +20,14 @@ export default function AdminDashboard() {
     todayDeliveries: 0,
     totalRevenue: 0,
     pendingBalance: 0,
+    debtorsCount: 0,
   });
   const [hiddenCards, setHiddenCards] = useState<string[]>(() => {
     const saved = localStorage.getItem("adminHiddenCards");
     return saved ? JSON.parse(saved) : [];
   });
   const [showHidden, setShowHidden] = useState(false);
+  const [debtsModalOpen, setDebtsModalOpen] = useState(false);
 
   const toggleCardVisibility = (cardId: string) => {
     const newHidden = hiddenCards.includes(cardId)
@@ -97,15 +100,18 @@ export default function AdminDashboard() {
 
     const { data: arrearsData } = await supabase
       .from("customers")
-      .select("arrears_balance");
+      .select("arrears_balance")
+      .is("deleted_at", null);
 
     const pendingBalance = arrearsData?.reduce((sum, c) => sum + Number(c.arrears_balance), 0) || 0;
+    const debtorsCount = arrearsData?.filter(c => Number(c.arrears_balance) > 0).length || 0;
 
     setStats({
       totalCustomers: customersCount || 0,
       todayDeliveries: todayCount || 0,
       totalRevenue,
       pendingBalance,
+      debtorsCount,
     });
   };
 
@@ -209,6 +215,37 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+
+          {(!hiddenCards.includes("debts") || showHidden) && (
+            <Card 
+              className={`cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] bg-gradient-to-br from-destructive/10 to-warning/10 border-destructive/30 ${hiddenCards.includes("debts") ? "opacity-50" : ""}`}
+              onClick={() => setDebtsModalOpen(true)}
+            >
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Customer Debts</CardTitle>
+                <div className="flex gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCardVisibility("debts");
+                    }}
+                  >
+                    {hiddenCards.includes("debts") ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </Button>
+                  <TrendingUp className="h-4 w-4 text-destructive" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-destructive">
+                  {stats.debtorsCount} customers
+                </div>
+                <p className="text-xs text-muted-foreground">Click to view detailed report</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -298,6 +335,7 @@ export default function AdminDashboard() {
         </div>
       </div>
       <Footer />
+      <DebtsReportModal open={debtsModalOpen} onOpenChange={setDebtsModalOpen} />
     </div>
   );
 }

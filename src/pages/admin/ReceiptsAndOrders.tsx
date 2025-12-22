@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Download, FileText, DollarSign, Settings } from "lucide-react";
+import { Download, FileText, DollarSign, Settings, Plus } from "lucide-react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -22,6 +22,19 @@ import {
 } from "@/components/ui/dialog";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
 import { downloadReceiptPDF } from "@/lib/pdf-receipt";
+import { PayNowDropdown } from "@/components/PayNowDropdown";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface Customer {
+  id: string;
+  shop_name: string;
+}
 
 interface Payment {
   id: string;
@@ -69,10 +82,13 @@ export default function ReceiptsAndOrders() {
   const [showAll, setShowAll] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
 
   useEffect(() => {
     checkAuth();
     fetchTemplateSettings();
+    loadCustomers();
   }, []);
 
   useEffect(() => {
@@ -80,6 +96,15 @@ export default function ReceiptsAndOrders() {
       loadData();
     }
   }, [user, selectedDate, showAll]);
+
+  const loadCustomers = async () => {
+    const { data } = await supabase
+      .from("customers")
+      .select("id, shop_name")
+      .is("deleted_at", null)
+      .order("shop_name");
+    if (data) setCustomers(data);
+  };
 
   const fetchTemplateSettings = async () => {
     const { data } = await supabase
@@ -247,17 +272,42 @@ export default function ReceiptsAndOrders() {
         <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-6 md:mb-8 flex justify-between items-start">
+        <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Receipts & Sales</h1>
             <p className="text-sm md:text-base text-muted-foreground">View and download payment receipts and sales records</p>
           </div>
-          {(user?.role === "admin" || user?.role === "co_admin") && (
-            <Button variant="outline" onClick={() => navigate("/admin/receipt-settings")}>
-              <Settings className="h-4 w-4 mr-2" />
-              Receipt Template
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select customer" />
+              </SelectTrigger>
+              <SelectContent>
+                {customers.map((customer) => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.shop_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedCustomerId && (
+              <PayNowDropdown 
+                customerId={selectedCustomerId} 
+                isAdmin={true} 
+                onPaymentSuccess={() => loadData()}
+              />
+            )}
+            <Button variant="outline" onClick={() => navigate("/admin/create-delivery")}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Order
             </Button>
-          )}
+            {(user?.role === "admin" || user?.role === "co_admin") && (
+              <Button variant="outline" onClick={() => navigate("/admin/receipt-settings")}>
+                <Settings className="h-4 w-4 mr-2" />
+                Receipt Template
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-6">

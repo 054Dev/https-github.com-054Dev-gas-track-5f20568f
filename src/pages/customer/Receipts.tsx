@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { BackButton } from "@/components/BackButton";
+import { SubNav } from "@/components/SubNav";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Receipt } from "lucide-react";
+import { Download, Receipt, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { downloadReceiptPDF } from "@/lib/pdf-receipt";
 import {
@@ -24,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
+import { PayNowDropdown } from "@/components/PayNowDropdown";
 
 interface Payment {
   id: string;
@@ -196,18 +198,34 @@ export default function Receipts() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout} />
+      <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">
           <BackButton />
         </div>
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-            <Receipt className="h-6 w-6 md:h-8 md:w-8" />
-            My Receipts
-          </h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            View and download your payment receipts
-          </p>
+        <div className="mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              <Receipt className="h-6 w-6 md:h-8 md:w-8" />
+              My Receipts
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground">
+              View and download your payment receipts
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {customerId && (
+              <PayNowDropdown 
+                customerId={customerId} 
+                isAdmin={false} 
+                onPaymentSuccess={loadPayments}
+              />
+            )}
+            <Button variant="outline" onClick={() => navigate("/customer/place-order")}>
+              <Plus className="h-4 w-4 mr-2" />
+              New Order
+            </Button>
+          </div>
         </div>
 
         {payments.length === 0 ? (

@@ -129,18 +129,20 @@ export default function Setup() {
 
     setLoading(true);
     try {
-      // Verify OTP
-      const { data: otpData, error: otpError } = await supabase
-        .from("admin_otps")
-        .select("*")
-        .eq("email", email)
-        .eq("otp", otp)
-        .eq("used", false)
-        .gt("expires_at", new Date().toISOString())
-        .single();
+      // Verify OTP via secure edge function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const otpResponse = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
 
-      if (otpError || !otpData) {
-        throw new Error("Invalid or expired OTP");
+      const otpResult = await otpResponse.json();
+      
+      if (!otpResult.valid) {
+        throw new Error(otpResult.error || "Invalid or expired OTP");
       }
 
       // Create user account
@@ -158,12 +160,6 @@ export default function Setup() {
       });
 
       if (authError) throw authError;
-
-      // Mark OTP as used
-      await supabase
-        .from("admin_otps")
-        .update({ used: true })
-        .eq("id", otpData.id);
 
       // Assign admin role
       if (authData.user) {

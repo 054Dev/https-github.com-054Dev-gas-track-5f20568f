@@ -17,12 +17,41 @@ interface NotificationRequest {
   status: string;
 }
 
+// Verify authentication from Authorization header
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { user: null, error: 'Missing authorization header' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  
+  if (error || !user) {
+    return { user: null, error: 'Invalid or expired token' };
+  }
+
+  return { user };
+}
+
+// Verify user has admin/staff role
+async function verifyAdminRole(supabaseAdmin: any, userId: string): Promise<boolean> {
+  const { data: roleData } = await supabaseAdmin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
+    .in('role', ['admin', 'co_admin', 'staff'])
+    .maybeSingle();
+
+  return !!roleData;
+}
+
 const sendSMS = async (phoneNumber: string, message: string) => {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
   const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
 
-  console.log("Sending SMS to:", phoneNumber);
+  console.log("Sending SMS");
 
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -42,8 +71,8 @@ const sendSMS = async (phoneNumber: string, message: string) => {
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("Twilio SMS error:", error);
-    throw new Error(`Failed to send SMS: ${error}`);
+    console.error("Twilio SMS error");
+    throw new Error(`Failed to send SMS`);
   }
 
   return await response.json();
@@ -59,10 +88,36 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Verify authentication
+    const { user, error: authError } = await verifyAuth(req, supabase);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: authError || 'Unauthorized' }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Verify admin/staff role
+    const isAdmin = await verifyAdminRole(supabase, user.id);
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Insufficient permissions' }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { customerId, message, type, status }: NotificationRequest =
       await req.json();
 
-    console.log("Sending notification for customer:", customerId);
+    // Validate required fields
+    if (!customerId || !message || !type || !status) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Sending notification for customer");
 
     // Get customer details
     const { data: customer, error: customerError } = await supabase
@@ -72,14 +127,17 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (customerError || !customer) {
-      throw new Error("Customer not found");
+      return new Response(
+        JSON.stringify({ error: "Customer not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    console.log("Customer found:", customer.shop_name);
+    console.log("Customer found");
 
     // Send email notification
     if (customer.email) {
-      console.log("Sending email to:", customer.email);
+      console.log("Sending email");
       await resend.emails.send({
         from: "Gas Delivery <onboarding@resend.dev>",
         to: [customer.email],
@@ -96,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send SMS notification
     if (customer.phone) {
-      console.log("Sending SMS to:", customer.phone);
+      console.log("Sending SMS");
       await sendSMS(customer.phone, `${customer.shop_name}: ${message}`);
       console.log("SMS sent successfully");
     }
@@ -113,7 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (notificationError) {
-      console.error("Error creating notification record:", notificationError);
+      console.error("Error creating notification record");
       throw notificationError;
     }
 
@@ -127,8 +185,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   } catch (error: any) {
-    console.error("Error in send-notification function:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error in send-notification function");
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });

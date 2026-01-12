@@ -95,17 +95,25 @@ export default function Contacts() {
         username: p.username,
         full_name: p.full_name,
         phone: p.phone,
-        email: (p as any).email,
+        email: null, // Will be fetched via edge function
         role: p.user_roles[0].role,
       }));
 
-      // Get emails from auth.users
+      // Get emails via server-side edge function
       for (const admin of adminContacts) {
-        const { data: authUser } = await supabase.auth.admin.getUserById(
-          admin.id
-        );
-        if (authUser?.user) {
-          admin.email = authUser.user.email || null;
+        try {
+          const { data, error } = await supabase.functions.invoke("admin-operations", {
+            body: {
+              action: "get-user-email",
+              userId: admin.id,
+            },
+          });
+          
+          if (!error && data?.email) {
+            admin.email = data.email;
+          }
+        } catch (err) {
+          console.error("Failed to fetch email for admin:", admin.id);
         }
       }
 

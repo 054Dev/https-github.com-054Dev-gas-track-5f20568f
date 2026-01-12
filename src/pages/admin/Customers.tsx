@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Mail, AlertCircle, Plus } from "lucide-react";
+import { Phone, Mail, AlertCircle, Plus, Eye, EyeOff, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { generateSecurePassword } from "@/lib/password-utils";
 
 interface Customer {
   id: string;
@@ -40,6 +41,8 @@ export default function AdminCustomers() {
   const [showDialog, setShowDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState("");
   const [newCustomer, setNewCustomer] = useState({
     shop_name: "",
     in_charge_name: "",
@@ -48,7 +51,7 @@ export default function AdminCustomers() {
     email: "",
     address: "",
     price_per_kg: "",
-    password: "finecustomer",
+    password: "",
   });
 
   useEffect(() => {
@@ -141,9 +144,34 @@ export default function AdminCustomers() {
     navigate("/login");
   };
 
+  const handleGeneratePassword = () => {
+    const password = generateSecurePassword(12);
+    setGeneratedPassword(password);
+    setNewCustomer({ ...newCustomer, password });
+  };
+
+  const handleCopyPassword = () => {
+    navigator.clipboard.writeText(generatedPassword);
+    toast({
+      title: "Copied",
+      description: "Password copied to clipboard. Share it securely with the customer.",
+    });
+  };
+
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validate password
+    if (!newCustomer.password || newCustomer.password.length < 8) {
+      toast({
+        title: "Error",
+        description: "Please generate or enter a password with at least 8 characters",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -184,10 +212,11 @@ export default function AdminCustomers() {
 
         toast({
           title: "Success",
-          description: "Customer added successfully",
+          description: "Customer added successfully. Remember to share the password securely!",
         });
 
         setShowAddDialog(false);
+        setGeneratedPassword("");
         setNewCustomer({
           shop_name: "",
           in_charge_name: "",
@@ -196,7 +225,7 @@ export default function AdminCustomers() {
           email: "",
           address: "",
           price_per_kg: "",
-          password: "finecustomer",
+          password: "",
         });
         loadCustomers();
       }
@@ -389,6 +418,43 @@ export default function AdminCustomers() {
                   setNewCustomer({ ...newCustomer, address: e.target.value })
                 }
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={newCustomer.password}
+                    onChange={(e) =>
+                      setNewCustomer({ ...newCustomer, password: e.target.value })
+                    }
+                    placeholder="Generate or enter password"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button type="button" variant="outline" onClick={handleGeneratePassword}>
+                  Generate
+                </Button>
+                {generatedPassword && (
+                  <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Generate a secure password and share it with the customer via a secure channel.
+              </p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating..." : "Create Customer"}

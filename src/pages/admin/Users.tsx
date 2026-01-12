@@ -31,13 +31,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Eye, EyeOff, Copy } from "lucide-react";
+import { generateSecurePassword } from "@/lib/password-utils";
 
 export default function Users() {
   const [user, setUser] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState("");
   const [newUser, setNewUser] = useState({
     email: "",
     username: "",
@@ -99,6 +102,20 @@ export default function Users() {
     }
   };
 
+  const handleGeneratePassword = () => {
+    const password = generateSecurePassword(12);
+    setGeneratedPassword(password);
+    setNewUser({ ...newUser, password });
+  };
+
+  const handleCopyPassword = () => {
+    navigator.clipboard.writeText(generatedPassword);
+    toast({
+      title: "Copied",
+      description: "Password copied to clipboard",
+    });
+  };
+
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -109,11 +126,20 @@ export default function Users() {
         throw new Error("Only admin can add co-admins");
       }
 
-      const defaultPassword = newUser.role === "customer" ? "finecustomer" : newUser.password;
+      // Always require a password - generate one if not provided for customers
+      let password = newUser.password;
+      if (!password || password.length < 8) {
+        if (newUser.role === "customer") {
+          password = generateSecurePassword(12);
+          setGeneratedPassword(password);
+        } else {
+          throw new Error("Password must be at least 8 characters");
+        }
+      }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
-        password: defaultPassword,
+        password: password,
         options: {
           data: {
             username: newUser.username,
@@ -132,25 +158,17 @@ export default function Users() {
         });
 
         if (roleError) throw roleError;
-
-        // If customer, send credentials via email/WhatsApp
-        if (newUser.role === "customer") {
-          // TODO: Implement edge function to send email/SMS
-          console.log("Send credentials to customer:", {
-            email: newUser.email,
-            password: defaultPassword,
-          });
-        }
       }
 
       toast({
         title: "Success",
         description: newUser.role === "customer" 
-          ? "Customer created! Login credentials sent via email."
+          ? "Customer created! Share the password securely with the customer."
           : "User created successfully!",
       });
 
       setDialogOpen(false);
+      setGeneratedPassword("");
       setNewUser({
         email: "",
         username: "",
@@ -278,22 +296,78 @@ export default function Users() {
                 </div>
                 {newUser.role !== "customer" && (
                   <div className="space-y-2">
-                    <Label htmlFor="password">Temporary Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) =>
-                        setNewUser({ ...newUser, password: e.target.value })
-                      }
-                      required
-                    />
+                    <Label htmlFor="password">Temporary Password *</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={newUser.password}
+                          onChange={(e) =>
+                            setNewUser({ ...newUser, password: e.target.value })
+                          }
+                          placeholder="Generate or enter password"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button type="button" variant="outline" onClick={handleGeneratePassword}>
+                        Generate
+                      </Button>
+                      {generatedPassword && (
+                        <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
                 {newUser.role === "customer" && (
-                  <p className="text-sm text-muted-foreground">
-                    Default password "finecustomer" will be set and sent to the customer.
-                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={newUser.password}
+                          onChange={(e) =>
+                            setNewUser({ ...newUser, password: e.target.value })
+                          }
+                          placeholder="Generate secure password"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button type="button" variant="outline" onClick={handleGeneratePassword}>
+                        Generate
+                      </Button>
+                      {generatedPassword && (
+                        <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Generate a secure password and share it with the customer via a secure channel.
+                    </p>
+                  </div>
                 )}
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? "Creating..." : "Create User"}

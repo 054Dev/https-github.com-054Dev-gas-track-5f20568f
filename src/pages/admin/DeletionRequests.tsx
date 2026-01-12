@@ -118,12 +118,16 @@ export default function DeletionRequests() {
     setLoading(true);
     try {
       if (actionType === 'approve') {
-        // Delete the user's auth account (cascades to all related data)
-        const { error: deleteError } = await supabase.auth.admin.deleteUser(
-          selectedRequest.user_id
-        );
+        // Delete the user's auth account via server-side edge function
+        const { data, error: deleteError } = await supabase.functions.invoke("admin-operations", {
+          body: {
+            action: "delete-user",
+            userId: selectedRequest.user_id,
+          },
+        });
         
         if (deleteError) throw deleteError;
+        if (data?.error) throw new Error(data.error);
 
         // Update request status
         await supabase

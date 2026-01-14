@@ -6,6 +6,7 @@ import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
+import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ interface Delivery {
   delivery_date: string;
   total_kg: number;
   total_charge: number;
+  price_per_kg_at_time: number;
   manual_adjustment: number;
 }
 
@@ -59,6 +61,8 @@ export default function CustomerDetail() {
   const [showPricingDialog, setShowPricingDialog] = useState(false);
   const [showCashPaymentDialog, setShowCashPaymentDialog] = useState(false);
   const [newPrice, setNewPrice] = useState("");
+  const [editPriceOpen, setEditPriceOpen] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -119,7 +123,7 @@ export default function CustomerDetail() {
   const loadDeliveries = async () => {
     const { data, error } = await supabase
       .from("deliveries")
-      .select("*")
+      .select("id, delivery_date, total_kg, total_charge, price_per_kg_at_time, manual_adjustment")
       .eq("customer_id", customerId)
       .order("delivery_date", { ascending: false });
 
@@ -169,6 +173,11 @@ export default function CustomerDetail() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
+  };
+
+  const handleEditDeliveryPrice = (delivery: Delivery) => {
+    setEditingDelivery(delivery);
+    setEditPriceOpen(true);
   };
 
   if (!user || !customer) return null;
@@ -279,15 +288,17 @@ export default function CustomerDetail() {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {deliveries.length > 0 ? (
-              <div className="min-w-[600px]">
+              <div className="min-w-[700px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs md:text-sm">Date</TableHead>
                       <TableHead className="text-xs md:text-sm">Quantity (KG)</TableHead>
+                      <TableHead className="text-xs md:text-sm">Price/KG</TableHead>
                       <TableHead className="text-xs md:text-sm">Base Charge</TableHead>
                       <TableHead className="text-xs md:text-sm">Adjustment</TableHead>
                       <TableHead className="text-right text-xs md:text-sm">Total</TableHead>
+                      <TableHead className="text-xs md:text-sm">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -297,6 +308,7 @@ export default function CustomerDetail() {
                           {new Date(delivery.delivery_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-xs md:text-sm">{delivery.total_kg} KG</TableCell>
+                        <TableCell className="text-xs md:text-sm">KES {delivery.price_per_kg_at_time}</TableCell>
                         <TableCell className="text-xs md:text-sm">KES {Number(delivery.total_charge).toLocaleString()}</TableCell>
                         <TableCell className="text-xs md:text-sm">
                           {delivery.manual_adjustment !== 0 && (
@@ -308,6 +320,15 @@ export default function CustomerDetail() {
                         </TableCell>
                         <TableCell className="text-right font-medium text-xs md:text-sm">
                           KES {(Number(delivery.total_charge) + Number(delivery.manual_adjustment || 0)).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditDeliveryPrice(delivery)}
+                          >
+                            <Edit className="h-3 w-3 md:h-4 md:w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -362,6 +383,23 @@ export default function CustomerDetail() {
           loadCustomerData();
         }}
       />
+
+      {/* Edit Order Price Dialog */}
+      {editingDelivery && (
+        <EditOrderPriceDialog
+          open={editPriceOpen}
+          onOpenChange={setEditPriceOpen}
+          deliveryId={editingDelivery.id}
+          customerId={customerId!}
+          currentPricePerKg={editingDelivery.price_per_kg_at_time}
+          totalKg={editingDelivery.total_kg}
+          currentTotalCharge={editingDelivery.total_charge}
+          onSuccess={() => {
+            loadDeliveries();
+            loadCustomerData();
+          }}
+        />
+      )}
     </div>
   );
 }

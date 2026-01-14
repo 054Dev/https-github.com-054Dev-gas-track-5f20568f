@@ -18,6 +18,7 @@ import AdminContacts from "./pages/admin/Contacts";
 import AdminCustomers from "./pages/admin/Customers";
 import AdminSubAdmins from "./pages/admin/SubAdmins";
 import AdminCreateDelivery from "./pages/admin/CreateDelivery";
+import AdminCylinderManagement from "./pages/admin/CylinderManagement";
 import CustomerDetail from "./pages/admin/CustomerDetail";
 import DeletionRequests from "./pages/admin/DeletionRequests";
 import AdminReceiptsAndOrders from "./pages/admin/ReceiptsAndOrders";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/admin/receipt-settings" element={<AdminReceiptSettings />} />
             <Route path="/admin/order-tracking" element={<AdminOrderTracking />} />
             <Route path="/admin/create-delivery" element={<AdminCreateDelivery />} />
+            <Route path="/admin/cylinder-management" element={<AdminCylinderManagement />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/services" element={<AdminServices />} />
             <Route path="/admin/sub-admins" element={<AdminSubAdmins />} />

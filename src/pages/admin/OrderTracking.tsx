@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp, DollarSign } from "lucide-react";
+import { Package, TrendingUp, DollarSign, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -34,12 +34,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
+import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
 
 interface Delivery {
   id: string;
   delivery_date: string;
   total_kg: number;
   total_charge: number;
+  price_per_kg_at_time: number;
   manual_adjustment: number;
   notes: string;
   status: "pending" | "en_route" | "delivered";
@@ -68,6 +70,8 @@ export default function OrderTracking() {
   });
   const [cashPaymentOpen, setCashPaymentOpen] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
+  const [editPriceOpen, setEditPriceOpen] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -118,6 +122,7 @@ export default function OrderTracking() {
         delivery_date,
         total_kg,
         total_charge,
+        price_per_kg_at_time,
         manual_adjustment,
         notes,
         status,
@@ -189,6 +194,11 @@ export default function OrderTracking() {
   const handleRecordPayment = (delivery: Delivery) => {
     setSelectedDelivery(delivery);
     setCashPaymentOpen(true);
+  };
+
+  const handleEditPrice = (delivery: Delivery) => {
+    setEditingDelivery(delivery);
+    setEditPriceOpen(true);
   };
 
   if (loading || !user) return null;
@@ -310,6 +320,9 @@ export default function OrderTracking() {
                             <p className="text-lg font-bold text-primary">
                               KES {delivery.total_charge.toLocaleString()}
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              @ KES {delivery.price_per_kg_at_time}/kg
+                            </p>
                             {delivery.manual_adjustment !== 0 && (
                               <p className="text-xs text-muted-foreground">
                                 Adj: {delivery.manual_adjustment > 0 ? "+" : ""}
@@ -331,15 +344,24 @@ export default function OrderTracking() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full"
-                          onClick={() => handleRecordPayment(delivery)}
-                        >
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          Record Payment
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditPrice(delivery)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Price
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRecordPayment(delivery)}
+                          >
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Payment
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -390,6 +412,9 @@ export default function OrderTracking() {
                             <p className="font-medium">
                               KES {delivery.total_charge.toLocaleString()}
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              @ KES {delivery.price_per_kg_at_time}/kg
+                            </p>
                             {delivery.manual_adjustment !== 0 && (
                               <p className="text-xs text-muted-foreground">
                                 Adj: {delivery.manual_adjustment > 0 ? "+" : ""}
@@ -414,14 +439,24 @@ export default function OrderTracking() {
                           </Select>
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRecordPayment(delivery)}
-                          >
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Record Payment
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditPrice(delivery)}
+                            >
+                              <Edit className="mr-1 h-4 w-4" />
+                              Price
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRecordPayment(delivery)}
+                            >
+                              <DollarSign className="mr-1 h-4 w-4" />
+                              Payment
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -438,6 +473,19 @@ export default function OrderTracking() {
             onOpenChange={setCashPaymentOpen}
             customerId={selectedDelivery.customer_id}
             deliveryId={selectedDelivery.id}
+            onSuccess={loadDeliveries}
+          />
+        )}
+
+        {editingDelivery && (
+          <EditOrderPriceDialog
+            open={editPriceOpen}
+            onOpenChange={setEditPriceOpen}
+            deliveryId={editingDelivery.id}
+            customerId={editingDelivery.customer_id}
+            currentPricePerKg={editingDelivery.price_per_kg_at_time}
+            totalKg={editingDelivery.total_kg}
+            currentTotalCharge={editingDelivery.total_charge}
             onSuccess={loadDeliveries}
           />
         )}

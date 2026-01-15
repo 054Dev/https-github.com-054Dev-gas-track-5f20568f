@@ -20,6 +20,8 @@ interface ReceiptViewerProps {
   reference?: string;
   status: string;
   templateSettings?: TemplateSettings;
+  pricePerKg?: number;
+  totalKg?: number;
 }
 
 export function ReceiptViewer({
@@ -31,6 +33,8 @@ export function ReceiptViewer({
   reference,
   status,
   templateSettings,
+  pricePerKg,
+  totalKg,
 }: ReceiptViewerProps) {
   const settings = {
     companyName: templateSettings?.companyName || "FINE GAS LIMITED",
@@ -110,6 +114,20 @@ export function ReceiptViewer({
             {status.charAt(0).toUpperCase() + status.slice(1)}
           </Badge>
         </div>
+
+        {pricePerKg !== undefined && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Price per KG</span>
+            <span className="text-sm font-medium">KES {pricePerKg.toLocaleString()}</span>
+          </div>
+        )}
+
+        {totalKg !== undefined && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Total KG</span>
+            <span className="text-sm font-medium">{totalKg.toFixed(2)} kg</span>
+          </div>
+        )}
 
         {settings.showTransactionId && (transactionId || reference) && (
           <div>

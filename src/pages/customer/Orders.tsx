@@ -49,6 +49,7 @@ interface Delivery {
   manual_adjustment: number;
   notes: string;
   status: "pending" | "en_route" | "delivered";
+  price_per_kg_at_time: number;
 }
 
 export default function CustomerOrders() {
@@ -173,7 +174,7 @@ export default function CustomerOrders() {
   const loadDeliveries = async (customerId: string) => {
     const { data } = await supabase
       .from("deliveries")
-      .select("*")
+      .select("id, delivery_date, total_kg, total_charge, manual_adjustment, notes, status, price_per_kg_at_time")
       .eq("customer_id", customerId)
       .order("delivery_date", { ascending: false });
 
@@ -244,6 +245,10 @@ export default function CustomerOrders() {
 
                       <div className="bg-muted p-2 rounded space-y-1">
                         <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Price/kg:</span>
+                          <span className="font-medium">KES {delivery.price_per_kg_at_time?.toFixed(2) || "-"}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Charge:</span>
                           <span className="font-medium">KES {delivery.total_charge.toFixed(2)}</span>
                         </div>
@@ -300,6 +305,7 @@ export default function CustomerOrders() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead className="text-right">KG Delivered</TableHead>
+                      <TableHead className="text-right">Price/kg</TableHead>
                       <TableHead className="text-right">Charge</TableHead>
                       <TableHead className="text-right">Adjustment</TableHead>
                       <TableHead>Status</TableHead>
@@ -315,6 +321,9 @@ export default function CustomerOrders() {
                         </TableCell>
                         <TableCell className="text-right">
                           {delivery.total_kg.toFixed(2)} kg
+                        </TableCell>
+                        <TableCell className="text-right">
+                          KES {delivery.price_per_kg_at_time?.toFixed(2) || "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           KES {delivery.total_charge.toFixed(2)}

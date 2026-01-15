@@ -59,6 +59,7 @@ interface Delivery {
   notes: string;
   status: "pending" | "en_route" | "delivered";
   customer_id: string;
+  price_per_kg_at_time: number;
   customer: {
     shop_name: string;
   };
@@ -140,6 +141,7 @@ export default function Orders() {
         notes,
         status,
         customer_id,
+        price_per_kg_at_time,
         customer:customers(shop_name)
       `)
       .order("delivery_date", { ascending: false })
@@ -400,6 +402,7 @@ export default function Orders() {
                     <TableHead className="text-xs md:text-sm">Date</TableHead>
                     <TableHead className="text-xs md:text-sm">Customer</TableHead>
                     <TableHead className="text-right text-xs md:text-sm">KG</TableHead>
+                    <TableHead className="text-right text-xs md:text-sm">Price/kg</TableHead>
                     <TableHead className="text-right text-xs md:text-sm">Charge</TableHead>
                     <TableHead className="text-right text-xs md:text-sm">Adjustment</TableHead>
                     <TableHead className="text-xs md:text-sm">Status</TableHead>
@@ -410,7 +413,7 @@ export default function Orders() {
                 <TableBody>
                   {deliveries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell colSpan={9} className="text-center py-8">
                         <Package className="mx-auto h-8 w-8 md:h-12 md:w-12 text-muted-foreground mb-2" />
                         <p className="text-sm md:text-base text-muted-foreground">No deliveries logged yet</p>
                       </TableCell>
@@ -424,6 +427,9 @@ export default function Orders() {
                         <TableCell className="text-xs md:text-sm">{delivery.customer.shop_name}</TableCell>
                         <TableCell className="text-right text-xs md:text-sm">
                           {delivery.total_kg.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-xs md:text-sm">
+                          KES {delivery.price_per_kg_at_time?.toFixed(2) || "-"}
                         </TableCell>
                         <TableCell className="text-right text-xs md:text-sm">
                           KES {delivery.total_charge.toFixed(2)}

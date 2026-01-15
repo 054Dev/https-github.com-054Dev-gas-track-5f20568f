@@ -150,10 +150,17 @@ export default function Index() {
                 </div>
                 
                 <div className="flex items-start gap-3">
-                  <Linkedin className="h-5 w-5 text-muted-foreground mt-0.5" />
+                  <Linkedin className="h-5 w-5 text-primary mt-0.5" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium">LinkedIn</p>
-                    <p className="text-sm text-muted-foreground">Coming soon</p>
+                    <a 
+                      href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View Profile
+                    </a>
                   </div>
                 </div>
               </div>

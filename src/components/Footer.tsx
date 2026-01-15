@@ -224,7 +224,14 @@ export function Footer() {
               <h3 className="font-semibold mb-2">Dun Mimi Ndegwa</h3>
               <p className="text-sm text-muted-foreground">Full-Stack Developer</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <p className="text-sm"><strong>Email:</strong> devmimi2@gmail.com</p>
+                <p className="text-sm text-muted-foreground">Secondary: kibendi054@gmail.com</p>
+              </div>
+              <div>
+                <p className="text-sm"><strong>WhatsApp/Phone:</strong> +254702255315</p>
+              </div>
               <a 
                 href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
                 target="_blank" 

@@ -19,6 +19,8 @@ interface ReceiptData {
   reference?: string;
   status: string;
   templateSettings?: TemplateSettings;
+  pricePerKg?: number;
+  totalKg?: number;
 }
 
 const getMethodDisplay = (method: string) => {
@@ -116,6 +118,30 @@ export const generateReceiptPDF = (data: ReceiptData): jsPDF => {
   doc.text(data.status.charAt(0).toUpperCase() + data.status.slice(1), pageWidth - 20, y, { align: "right" });
   doc.setFont("helvetica", "normal");
   y += 10;
+
+  // Price per KG
+  if (data.pricePerKg !== undefined) {
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Price per KG", 20, y);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`KES ${data.pricePerKg.toLocaleString()}`, pageWidth - 20, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    y += 10;
+  }
+
+  // Total KG
+  if (data.totalKg !== undefined) {
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Total KG", 20, y);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${data.totalKg.toFixed(2)} kg`, pageWidth - 20, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    y += 10;
+  }
 
   // Transaction ID
   if (settings.showTransactionId && (data.transactionId || data.reference)) {

@@ -7,9 +7,53 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Receipt, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Receipt, Trash2, Link } from "lucide-react";
 import { ReceiptViewer } from "@/components/ReceiptViewer";
+
+// Dynamic field options that can be linked to custom fields
+const DYNAMIC_FIELD_OPTIONS = [
+  { value: "static", label: "Static Value (enter manually)" },
+  { value: "price_per_kg", label: "Price per KG" },
+  { value: "total_kg", label: "Total KG" },
+  { value: "customer_name", label: "Customer Name" },
+  { value: "shop_name", label: "Shop Name" },
+  { value: "customer_phone", label: "Customer Phone" },
+  { value: "delivery_date", label: "Delivery Date" },
+];
+
+interface DynamicFieldData {
+  pricePerKg?: number;
+  totalKg?: number;
+  customerName?: string;
+  shopName?: string;
+  customerPhone?: string;
+  deliveryDate?: string;
+}
+
+// Resolve dynamic field values like {{price_per_kg}} to actual values
+const resolveFieldValue = (value: string, data: DynamicFieldData): string => {
+  if (!value?.startsWith("{{")) return value;
+  
+  const fieldKey = value.replace(/\{\{|\}\}/g, "");
+  switch (fieldKey) {
+    case "price_per_kg":
+      return data.pricePerKg !== undefined ? `KES ${data.pricePerKg.toLocaleString()}` : "-";
+    case "total_kg":
+      return data.totalKg !== undefined ? `${data.totalKg.toFixed(2)} kg` : "-";
+    case "customer_name":
+      return data.customerName || "-";
+    case "shop_name":
+      return data.shopName || "-";
+    case "customer_phone":
+      return data.customerPhone || "-";
+    case "delivery_date":
+      return data.deliveryDate ? new Date(data.deliveryDate).toLocaleDateString() : "-";
+    default:
+      return value;
+  }
+};
 
 interface ReceiptTemplateSettings {
   id: string;
@@ -201,40 +245,80 @@ export default function ReceiptSettings() {
                 const valueKey = `custom_field_${num}_value` as keyof ReceiptTemplateSettings;
                 const hasValue = settings?.[labelKey] || settings?.[valueKey];
                 
-                return (
-                  <div key={num} className="space-y-3 p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">Custom Field {num}</span>
-                      {hasValue && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => clearCustomField(num as 1 | 2 | 3)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Label</Label>
-                        <Input
-                          value={(settings?.[labelKey] as string) || ""}
-                          onChange={(e) => updateField(labelKey, e.target.value || null)}
-                          placeholder="e.g., Tax ID"
-                        />
+                  return (
+                    <div key={num} className="space-y-3 p-4 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm flex items-center gap-2">
+                          <Link className="h-4 w-4 text-muted-foreground" />
+                          Custom Field {num}
+                        </span>
+                        {hasValue && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => clearCustomField(num as 1 | 2 | 3)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Value</Label>
-                        <Input
-                          value={(settings?.[valueKey] as string) || ""}
-                          onChange={(e) => updateField(valueKey, e.target.value || null)}
-                          placeholder="e.g., 12345678"
-                        />
+                      <div className="space-y-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Label</Label>
+                          <Input
+                            value={(settings?.[labelKey] as string) || ""}
+                            onChange={(e) => updateField(labelKey, e.target.value || null)}
+                            placeholder="e.g., Tax ID, Price Rate, etc."
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Value Source</Label>
+                          <Select
+                            value={
+                              (settings?.[valueKey] as string)?.startsWith("{{") 
+                                ? (settings?.[valueKey] as string)?.replace(/\{\{|\}\}/g, "") 
+                                : "static"
+                            }
+                            onValueChange={(value) => {
+                              if (value === "static") {
+                                updateField(valueKey, "");
+                              } else {
+                                updateField(valueKey, `{{${value}}}`);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select value source" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card z-50">
+                              {DYNAMIC_FIELD_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {!(settings?.[valueKey] as string)?.startsWith("{{") && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Static Value</Label>
+                            <Input
+                              value={(settings?.[valueKey] as string) || ""}
+                              onChange={(e) => updateField(valueKey, e.target.value || null)}
+                              placeholder="Enter a fixed value"
+                            />
+                          </div>
+                        )}
+                        {(settings?.[valueKey] as string)?.startsWith("{{") && (
+                          <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                            This field will display the <strong>{
+                              DYNAMIC_FIELD_OPTIONS.find(o => `{{${o.value}}}` === settings?.[valueKey])?.label || "dynamic value"
+                            }</strong> from each transaction.
+                          </p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
+                  );
               })}
             </CardContent>
           </Card>
@@ -271,6 +355,8 @@ export default function ReceiptSettings() {
                 date={new Date().toISOString()}
                 transactionId="TXN123456789"
                 status="completed"
+                pricePerKg={150}
+                totalKg={33.33}
                 templateSettings={settings ? {
                   companyName: settings.company_name,
                   logoUrl: settings.logo_url,
@@ -279,13 +365,22 @@ export default function ReceiptSettings() {
                   showPaymentMethod: settings.show_payment_method,
                   customFields: [
                     settings.custom_field_1_label && settings.custom_field_1_value
-                      ? { label: settings.custom_field_1_label, value: settings.custom_field_1_value }
+                      ? { 
+                          label: settings.custom_field_1_label, 
+                          value: resolveFieldValue(settings.custom_field_1_value, { pricePerKg: 150, totalKg: 33.33, customerName: "Sample Customer", shopName: "Sample Shop", customerPhone: "+254712345678", deliveryDate: new Date().toISOString() })
+                        }
                       : null,
                     settings.custom_field_2_label && settings.custom_field_2_value
-                      ? { label: settings.custom_field_2_label, value: settings.custom_field_2_value }
+                      ? { 
+                          label: settings.custom_field_2_label, 
+                          value: resolveFieldValue(settings.custom_field_2_value, { pricePerKg: 150, totalKg: 33.33, customerName: "Sample Customer", shopName: "Sample Shop", customerPhone: "+254712345678", deliveryDate: new Date().toISOString() })
+                        }
                       : null,
                     settings.custom_field_3_label && settings.custom_field_3_value
-                      ? { label: settings.custom_field_3_label, value: settings.custom_field_3_value }
+                      ? { 
+                          label: settings.custom_field_3_label, 
+                          value: resolveFieldValue(settings.custom_field_3_value, { pricePerKg: 150, totalKg: 33.33, customerName: "Sample Customer", shopName: "Sample Shop", customerPhone: "+254712345678", deliveryDate: new Date().toISOString() })
+                        }
                       : null,
                   ].filter(Boolean) as { label: string; value: string }[],
                 } : undefined}

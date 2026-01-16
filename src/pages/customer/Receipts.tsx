@@ -36,6 +36,7 @@ interface Payment {
   paid_at: string;
   reference: string;
   transaction_id: string;
+  delivery_id: string | null;
 }
 
 interface TemplateSettings {
@@ -53,8 +54,10 @@ export default function Receipts() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentDeliveryData, setPaymentDeliveryData] = useState<{ total_kg: number; price_per_kg_at_time: number } | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [customerDebt, setCustomerDebt] = useState(0);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
 
   useEffect(() => {
@@ -137,12 +140,31 @@ export default function Receipts() {
   const loadCustomerName = async () => {
     const { data } = await supabase
       .from("customers")
-      .select("in_charge_name")
+      .select("in_charge_name, arrears_balance")
       .eq("id", customerId)
       .single();
     
     if (data) {
       setCustomerName(data.in_charge_name);
+      setCustomerDebt(data.arrears_balance || 0);
+    }
+  };
+
+  // Fetch delivery data when payment is selected
+  const fetchPaymentDeliveryData = async (payment: Payment) => {
+    setSelectedPayment(payment);
+    setPaymentDeliveryData(null);
+    
+    if (payment.delivery_id) {
+      const { data: deliveryData } = await supabase
+        .from("deliveries")
+        .select("total_kg, price_per_kg_at_time")
+        .eq("id", payment.delivery_id)
+        .single();
+      
+      if (deliveryData) {
+        setPaymentDeliveryData(deliveryData);
+      }
     }
   };
 
@@ -159,7 +181,7 @@ export default function Receipts() {
     setLoading(false);
   };
 
-  const downloadReceipt = (payment: Payment) => {
+  const downloadReceipt = (payment: Payment, deliveryData?: { total_kg: number; price_per_kg_at_time: number } | null) => {
     downloadReceiptPDF({
       customerName,
       amount: payment.amount_paid,
@@ -169,6 +191,9 @@ export default function Receipts() {
       reference: payment.reference,
       status: payment.payment_status,
       templateSettings: templateSettings || undefined,
+      pricePerKg: deliveryData?.price_per_kg_at_time,
+      totalKg: deliveryData?.total_kg,
+      customerDebt: customerDebt,
     });
   };
 
@@ -240,8 +265,8 @@ export default function Receipts() {
             {payments.map((payment) => (
               <Card 
                 key={payment.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelectedPayment(payment)}
+                className="cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+                onClick={() => fetchPaymentDeliveryData(payment)}
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
@@ -273,6 +298,7 @@ export default function Receipts() {
                         e.stopPropagation();
                         downloadReceipt(payment);
                       }}
+                      className="transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -301,10 +327,13 @@ export default function Receipts() {
                 reference={selectedPayment.reference}
                 status={selectedPayment.payment_status}
                 templateSettings={templateSettings || undefined}
+                pricePerKg={paymentDeliveryData?.price_per_kg_at_time}
+                totalKg={paymentDeliveryData?.total_kg}
+                customerDebt={customerDebt}
               />
               <Button 
                 className="w-full" 
-                onClick={() => downloadReceipt(selectedPayment)}
+                onClick={() => downloadReceipt(selectedPayment, paymentDeliveryData)}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download Receipt

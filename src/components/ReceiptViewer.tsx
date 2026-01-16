@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Receipt } from "lucide-react";
+import { Receipt, AlertTriangle } from "lucide-react";
 
 interface TemplateSettings {
   companyName?: string;
@@ -22,6 +22,7 @@ interface ReceiptViewerProps {
   templateSettings?: TemplateSettings;
   pricePerKg?: number;
   totalKg?: number;
+  customerDebt?: number;
 }
 
 export function ReceiptViewer({
@@ -35,6 +36,7 @@ export function ReceiptViewer({
   templateSettings,
   pricePerKg,
   totalKg,
+  customerDebt,
 }: ReceiptViewerProps) {
   const settings = {
     companyName: templateSettings?.companyName || "FINE GAS LIMITED",
@@ -160,6 +162,17 @@ export function ReceiptViewer({
           </div>
         </div>
       </div>
+
+      {/* Customer Debt */}
+      {customerDebt !== undefined && customerDebt > 0 && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <span className="text-sm font-semibold text-destructive">Outstanding Balance</span>
+          </div>
+          <p className="text-lg font-bold text-destructive">KES {customerDebt.toLocaleString()}</p>
+        </div>
+      )}
 
       {/* Footer */}
       {settings.footerText && (

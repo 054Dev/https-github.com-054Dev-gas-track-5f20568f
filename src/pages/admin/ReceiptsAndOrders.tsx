@@ -45,9 +45,11 @@ interface Payment {
   transaction_id: string;
   reference: string;
   payment_status: string;
+  delivery_id: string | null;
   customers: {
     shop_name: string;
     in_charge_name: string;
+    arrears_balance: number;
   };
 }
 
@@ -57,6 +59,8 @@ interface Delivery {
   manual_adjustment: number;
   delivery_date: string;
   customer_id: string;
+  total_kg: number;
+  price_per_kg_at_time: number;
   customers: {
     shop_name: string;
     in_charge_name: string;
@@ -80,7 +84,9 @@ export default function ReceiptsAndOrders() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [paymentDeliveryData, setPaymentDeliveryData] = useState<{ total_kg: number; price_per_kg_at_time: number } | null>(null);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -162,55 +168,78 @@ export default function ReceiptsAndOrders() {
   };
 
   const loadData = async () => {
-    if (showAll) {
-      // Load all data
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("*, customers(shop_name, in_charge_name)")
-        .order("paid_at", { ascending: false });
+    setIsLoadingData(true);
+    try {
+      if (showAll) {
+        // Load all data
+        const { data: paymentsData } = await supabase
+          .from("payments")
+          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+          .order("paid_at", { ascending: false });
 
-      const { data: deliveriesData } = await supabase
+        const { data: deliveriesData } = await supabase
+          .from("deliveries")
+          .select("*, customers(shop_name, in_charge_name)")
+          .order("delivery_date", { ascending: false });
+
+        setPayments(paymentsData || []);
+        setDeliveries(deliveriesData || []);
+      } else if (selectedDate) {
+        // Load data for specific date
+        const { data: paymentsData } = await supabase
+          .from("payments")
+          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+          .gte("paid_at", selectedDate)
+          .lt("paid_at", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
+          .order("paid_at", { ascending: false });
+
+        const { data: deliveriesData } = await supabase
+          .from("deliveries")
+          .select("*, customers(shop_name, in_charge_name)")
+          .gte("delivery_date", selectedDate)
+          .lt("delivery_date", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
+          .order("delivery_date", { ascending: false });
+
+        setPayments(paymentsData || []);
+        setDeliveries(deliveriesData || []);
+      } else {
+        // Default: load today's data
+        const today = new Date().toISOString().split("T")[0];
+        const { data: paymentsData } = await supabase
+          .from("payments")
+          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+          .gte("paid_at", today)
+          .order("paid_at", { ascending: false });
+
+        const { data: deliveriesData } = await supabase
+          .from("deliveries")
+          .select("*, customers(shop_name, in_charge_name)")
+          .gte("delivery_date", today)
+          .order("delivery_date", { ascending: false });
+
+        setPayments(paymentsData || []);
+        setDeliveries(deliveriesData || []);
+      }
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // Fetch delivery data when payment is selected
+  const fetchPaymentDeliveryData = async (payment: Payment) => {
+    setSelectedPayment(payment);
+    setPaymentDeliveryData(null);
+    
+    if (payment.delivery_id) {
+      const { data: deliveryData } = await supabase
         .from("deliveries")
-        .select("*, customers(shop_name, in_charge_name)")
-        .order("delivery_date", { ascending: false });
-
-      setPayments(paymentsData || []);
-      setDeliveries(deliveriesData || []);
-    } else if (selectedDate) {
-      // Load data for specific date
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("*, customers(shop_name, in_charge_name)")
-        .gte("paid_at", selectedDate)
-        .lt("paid_at", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
-        .order("paid_at", { ascending: false });
-
-      const { data: deliveriesData } = await supabase
-        .from("deliveries")
-        .select("*, customers(shop_name, in_charge_name)")
-        .gte("delivery_date", selectedDate)
-        .lt("delivery_date", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
-        .order("delivery_date", { ascending: false });
-
-      setPayments(paymentsData || []);
-      setDeliveries(deliveriesData || []);
-    } else {
-      // Default: load today's data
-      const today = new Date().toISOString().split("T")[0];
-      const { data: paymentsData } = await supabase
-        .from("payments")
-        .select("*, customers(shop_name, in_charge_name)")
-        .gte("paid_at", today)
-        .order("paid_at", { ascending: false });
-
-      const { data: deliveriesData } = await supabase
-        .from("deliveries")
-        .select("*, customers(shop_name, in_charge_name)")
-        .gte("delivery_date", today)
-        .order("delivery_date", { ascending: false });
-
-      setPayments(paymentsData || []);
-      setDeliveries(deliveriesData || []);
+        .select("total_kg, price_per_kg_at_time")
+        .eq("id", payment.delivery_id)
+        .single();
+      
+      if (deliveryData) {
+        setPaymentDeliveryData(deliveryData);
+      }
     }
   };
 
@@ -233,7 +262,7 @@ export default function ReceiptsAndOrders() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadSingleReceipt = (payment: Payment) => {
+  const downloadSingleReceipt = (payment: Payment, deliveryData?: { total_kg: number; price_per_kg_at_time: number } | null) => {
     downloadReceiptPDF({
       customerName: payment.customers?.in_charge_name || "Customer",
       amount: payment.amount_paid,
@@ -243,6 +272,9 @@ export default function ReceiptsAndOrders() {
       reference: payment.reference,
       status: payment.payment_status,
       templateSettings: templateSettings || undefined,
+      pricePerKg: deliveryData?.price_per_kg_at_time,
+      totalKg: deliveryData?.total_kg,
+      customerDebt: payment.customers?.arrears_balance || 0,
     });
   };
 
@@ -324,10 +356,20 @@ export default function ReceiptsAndOrders() {
             />
           </div>
           <div className="flex items-end gap-2">
-            <Button onClick={() => { setShowAll(true); setSelectedDate(""); }} variant="outline">
-              View All
+            <Button 
+              onClick={() => { setShowAll(true); setSelectedDate(""); }} 
+              variant={showAll ? "default" : "outline"}
+              disabled={isLoadingData}
+              className="transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md"
+            >
+              {isLoadingData && showAll ? "Loading..." : "View All"}
             </Button>
-            <Button onClick={() => { setShowAll(false); setSelectedDate(""); }} variant="outline">
+            <Button 
+              onClick={() => { setShowAll(false); setSelectedDate(""); }} 
+              variant={!showAll && !selectedDate ? "default" : "outline"}
+              disabled={isLoadingData}
+              className="transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md"
+            >
               Today
             </Button>
           </div>
@@ -362,8 +404,8 @@ export default function ReceiptsAndOrders() {
                 payments.map((payment) => (
                   <Card 
                     key={payment.id} 
-                    className="hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setSelectedPayment(payment)}
+                    className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+                    onClick={() => fetchPaymentDeliveryData(payment)}
                   >
                     <CardHeader className="pb-3">
                       <div className="flex justify-between items-start">
@@ -464,10 +506,13 @@ export default function ReceiptsAndOrders() {
                 reference={selectedPayment.reference}
                 status={selectedPayment.payment_status}
                 templateSettings={templateSettings || undefined}
+                pricePerKg={paymentDeliveryData?.price_per_kg_at_time}
+                totalKg={paymentDeliveryData?.total_kg}
+                customerDebt={selectedPayment.customers?.arrears_balance || 0}
               />
               <Button 
                 className="w-full" 
-                onClick={() => downloadSingleReceipt(selectedPayment)}
+                onClick={() => downloadSingleReceipt(selectedPayment, paymentDeliveryData)}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download Receipt

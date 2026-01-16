@@ -23,6 +23,7 @@ interface ReceiptViewerProps {
   pricePerKg?: number;
   totalKg?: number;
   customerDebt?: number;
+  orderCost?: number; // The total cost of the order being paid
 }
 
 export function ReceiptViewer({
@@ -37,6 +38,7 @@ export function ReceiptViewer({
   pricePerKg,
   totalKg,
   customerDebt,
+  orderCost,
 }: ReceiptViewerProps) {
   const settings = {
     companyName: templateSettings?.companyName || "FINE GAS LIMITED",
@@ -153,24 +155,74 @@ export function ReceiptViewer({
         </div>
       )}
 
-      {/* Amount */}
-      <div className="bg-primary/5 rounded-lg p-4">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-muted-foreground">Total Amount Paid</span>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary">KES {amount.toLocaleString()}</p>
+      {/* Order Cost (if available) */}
+      {orderCost !== undefined && (
+        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Order Cost</span>
+            <span className="text-sm font-bold">KES {orderCost.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Amount Paid</span>
+            <span className="text-sm font-bold text-primary">KES {amount.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center border-t pt-2">
+            <span className="text-sm font-semibold text-muted-foreground">Payment Balance</span>
+            <span className={`text-sm font-bold ${orderCost - amount > 0 ? 'text-destructive' : orderCost - amount < 0 ? 'text-green-600' : ''}`}>
+              {orderCost - amount > 0 ? `KES ${(orderCost - amount).toLocaleString()} (Due)` : 
+               orderCost - amount < 0 ? `KES ${Math.abs(orderCost - amount).toLocaleString()} (Credit)` : 
+               'Fully Paid'}
+            </span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Customer Debt */}
-      {customerDebt !== undefined && customerDebt > 0 && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            <span className="text-sm font-semibold text-destructive">Outstanding Balance</span>
+      {/* Amount (only if no order cost breakdown) */}
+      {orderCost === undefined && (
+        <div className="bg-primary/5 rounded-lg p-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold text-muted-foreground">Total Amount Paid</span>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-primary">KES {amount.toLocaleString()}</p>
+            </div>
           </div>
-          <p className="text-lg font-bold text-destructive">KES {customerDebt.toLocaleString()}</p>
+        </div>
+      )}
+
+      {/* Customer Running Balance */}
+      {customerDebt !== undefined && (
+        <div className={`rounded-lg p-4 border ${
+          customerDebt > 0 
+            ? 'bg-destructive/10 border-destructive/20' 
+            : customerDebt < 0 
+              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+              : 'bg-muted/50 border-muted'
+        }`}>
+          <div className="flex items-center gap-2 mb-2">
+            {customerDebt > 0 ? (
+              <>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <span className="text-sm font-semibold text-destructive">Outstanding Balance</span>
+              </>
+            ) : customerDebt < 0 ? (
+              <span className="text-sm font-semibold text-green-600 dark:text-green-400">Account Credit</span>
+            ) : (
+              <span className="text-sm font-semibold text-muted-foreground">Account Balance</span>
+            )}
+          </div>
+          <p className={`text-lg font-bold ${
+            customerDebt > 0 
+              ? 'text-destructive' 
+              : customerDebt < 0 
+                ? 'text-green-600 dark:text-green-400' 
+                : 'text-foreground'
+          }`}>
+            {customerDebt > 0 
+              ? `KES ${customerDebt.toLocaleString()} (Owed)` 
+              : customerDebt < 0 
+                ? `KES ${Math.abs(customerDebt).toLocaleString()} (Credit)` 
+                : 'No Outstanding Balance'}
+          </p>
         </div>
       )}
 

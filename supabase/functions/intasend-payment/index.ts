@@ -199,8 +199,8 @@ serve(async (req) => {
             throw paymentError;
           }
 
-          // Update customer arrears
-          const newArrears = Math.max(0, (delivery.customers.arrears_balance || 0) - parseFloat(amount));
+          // Update customer arrears (allow negative for credits/overpayments)
+          const newArrears = (delivery.customers.arrears_balance || 0) - parseFloat(amount);
           await supabaseAdmin
             .from("customers")
             .update({ arrears_balance: newArrears })
@@ -312,8 +312,8 @@ serve(async (req) => {
         );
       }
 
-      // Update customer arrears
-      const newArrears = Math.max(0, (customer.arrears_balance || 0) - amount);
+      // Update customer arrears (allow negative for credits/overpayments)
+      const newArrears = (customer.arrears_balance || 0) - amount;
       await supabaseAdmin
         .from("customers")
         .update({ arrears_balance: newArrears })

@@ -22,6 +22,7 @@ interface ReceiptData {
   pricePerKg?: number;
   totalKg?: number;
   customerDebt?: number;
+  orderCost?: number;
 }
 
 const getMethodDisplay = (method: string) => {
@@ -177,37 +178,114 @@ export const generateReceiptPDF = (data: ReceiptData): jsPDF => {
 
   y += 5;
 
-  // Amount Box
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(20, y, pageWidth - 40, 35, 3, 3, "F");
-  y += 12;
+  // Order Cost Breakdown (if order cost is provided)
+  if (data.orderCost !== undefined) {
+    doc.setFillColor(248, 250, 252); // Light gray
+    doc.roundedRect(20, y, pageWidth - 40, 50, 3, 3, "F");
+    y += 12;
 
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text("TOTAL AMOUNT PAID", pageWidth / 2, y, { align: "center" });
-  y += 12;
-
-  doc.setFontSize(24);
-  doc.setTextColor(37, 99, 235); // Blue color
-  doc.setFont("helvetica", "bold");
-  doc.text(`KES ${data.amount.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
-  y += 25;
-
-  // Customer Debt Box (if exists)
-  if (data.customerDebt !== undefined && data.customerDebt > 0) {
-    doc.setFillColor(254, 226, 226); // Light red
-    doc.roundedRect(20, y, pageWidth - 40, 30, 3, 3, "F");
+    // Order Cost
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Order Cost", 25, y);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`KES ${data.orderCost.toLocaleString()}`, pageWidth - 25, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
     y += 10;
+
+    // Amount Paid
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Amount Paid", 25, y);
+    doc.setTextColor(37, 99, 235); // Blue
+    doc.setFont("helvetica", "bold");
+    doc.text(`KES ${data.amount.toLocaleString()}`, pageWidth - 25, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    y += 12;
+
+    // Payment Balance
+    const paymentBalance = data.orderCost - data.amount;
+    doc.setDrawColor(200);
+    doc.line(25, y - 4, pageWidth - 25, y - 4);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Payment Balance", 25, y);
+    
+    if (paymentBalance > 0) {
+      doc.setTextColor(185, 28, 28); // Red
+      doc.setFont("helvetica", "bold");
+      doc.text(`KES ${paymentBalance.toLocaleString()} (Due)`, pageWidth - 25, y, { align: "right" });
+    } else if (paymentBalance < 0) {
+      doc.setTextColor(22, 163, 74); // Green
+      doc.setFont("helvetica", "bold");
+      doc.text(`KES ${Math.abs(paymentBalance).toLocaleString()} (Credit)`, pageWidth - 25, y, { align: "right" });
+    } else {
+      doc.setTextColor(0);
+      doc.setFont("helvetica", "bold");
+      doc.text("Fully Paid", pageWidth - 25, y, { align: "right" });
+    }
+    doc.setFont("helvetica", "normal");
+    y += 20;
+  } else {
+    // Simple Amount Box (when no order cost breakdown)
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(20, y, pageWidth - 40, 35, 3, 3, "F");
+    y += 12;
 
     doc.setFontSize(10);
-    doc.setTextColor(185, 28, 28); // Dark red
-    doc.setFont("helvetica", "bold");
-    doc.text("OUTSTANDING BALANCE", pageWidth / 2, y, { align: "center" });
-    y += 10;
+    doc.setTextColor(100);
+    doc.text("TOTAL AMOUNT PAID", pageWidth / 2, y, { align: "center" });
+    y += 12;
 
-    doc.setFontSize(16);
-    doc.text(`KES ${data.customerDebt.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
-    y += 20;
+    doc.setFontSize(24);
+    doc.setTextColor(37, 99, 235); // Blue color
+    doc.setFont("helvetica", "bold");
+    doc.text(`KES ${data.amount.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
+    y += 25;
+  }
+
+  // Customer Running Balance Box
+  if (data.customerDebt !== undefined) {
+    if (data.customerDebt > 0) {
+      doc.setFillColor(254, 226, 226); // Light red
+      doc.roundedRect(20, y, pageWidth - 40, 30, 3, 3, "F");
+      y += 10;
+
+      doc.setFontSize(10);
+      doc.setTextColor(185, 28, 28); // Dark red
+      doc.setFont("helvetica", "bold");
+      doc.text("OUTSTANDING BALANCE (OWED)", pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setFontSize(16);
+      doc.text(`KES ${data.customerDebt.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
+      y += 20;
+    } else if (data.customerDebt < 0) {
+      doc.setFillColor(220, 252, 231); // Light green
+      doc.roundedRect(20, y, pageWidth - 40, 30, 3, 3, "F");
+      y += 10;
+
+      doc.setFontSize(10);
+      doc.setTextColor(22, 101, 52); // Dark green
+      doc.setFont("helvetica", "bold");
+      doc.text("ACCOUNT CREDIT", pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setFontSize(16);
+      doc.text(`KES ${Math.abs(data.customerDebt).toLocaleString()}`, pageWidth / 2, y, { align: "center" });
+      y += 20;
+    } else {
+      doc.setFillColor(241, 245, 249); // Light gray
+      doc.roundedRect(20, y, pageWidth - 40, 25, 3, 3, "F");
+      y += 12;
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.setFont("helvetica", "bold");
+      doc.text("No Outstanding Balance", pageWidth / 2, y, { align: "center" });
+      y += 18;
+    }
   }
 
   // Horizontal line

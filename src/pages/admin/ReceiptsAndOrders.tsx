@@ -86,7 +86,8 @@ export default function ReceiptsAndOrders() {
   const [showAll, setShowAll] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [paymentDeliveryData, setPaymentDeliveryData] = useState<{ total_kg: number; price_per_kg_at_time: number } | null>(null);
+  const [paymentDeliveryData, setPaymentDeliveryData] = useState<{ total_kg: number; price_per_kg_at_time: number; total_charge: number } | null>(null);
+  const [liveCustomerDebt, setLiveCustomerDebt] = useState<number>(0);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
@@ -225,15 +226,27 @@ export default function ReceiptsAndOrders() {
     }
   };
 
-  // Fetch delivery data when payment is selected
+  // Fetch delivery data and live customer debt when payment is selected
   const fetchPaymentDeliveryData = async (payment: Payment) => {
     setSelectedPayment(payment);
     setPaymentDeliveryData(null);
+    setLiveCustomerDebt(0);
+    
+    // Fetch live customer debt
+    const { data: customerData } = await supabase
+      .from("customers")
+      .select("arrears_balance")
+      .eq("id", payment.customer_id)
+      .single();
+    
+    if (customerData) {
+      setLiveCustomerDebt(customerData.arrears_balance || 0);
+    }
     
     if (payment.delivery_id) {
       const { data: deliveryData } = await supabase
         .from("deliveries")
-        .select("total_kg, price_per_kg_at_time")
+        .select("total_kg, price_per_kg_at_time, total_charge")
         .eq("id", payment.delivery_id)
         .single();
       
@@ -262,7 +275,7 @@ export default function ReceiptsAndOrders() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadSingleReceipt = (payment: Payment, deliveryData?: { total_kg: number; price_per_kg_at_time: number } | null) => {
+  const downloadSingleReceipt = (payment: Payment, deliveryData?: { total_kg: number; price_per_kg_at_time: number; total_charge: number } | null, customerDebt?: number) => {
     downloadReceiptPDF({
       customerName: payment.customers?.in_charge_name || "Customer",
       amount: payment.amount_paid,
@@ -274,7 +287,8 @@ export default function ReceiptsAndOrders() {
       templateSettings: templateSettings || undefined,
       pricePerKg: deliveryData?.price_per_kg_at_time,
       totalKg: deliveryData?.total_kg,
-      customerDebt: payment.customers?.arrears_balance || 0,
+      customerDebt: customerDebt ?? (payment.customers?.arrears_balance || 0),
+      orderCost: deliveryData?.total_charge,
     });
   };
 
@@ -508,11 +522,12 @@ export default function ReceiptsAndOrders() {
                 templateSettings={templateSettings || undefined}
                 pricePerKg={paymentDeliveryData?.price_per_kg_at_time}
                 totalKg={paymentDeliveryData?.total_kg}
-                customerDebt={selectedPayment.customers?.arrears_balance || 0}
+                customerDebt={liveCustomerDebt}
+                orderCost={paymentDeliveryData?.total_charge}
               />
               <Button 
                 className="w-full" 
-                onClick={() => downloadSingleReceipt(selectedPayment, paymentDeliveryData)}
+                onClick={() => downloadSingleReceipt(selectedPayment, paymentDeliveryData, liveCustomerDebt)}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Download Receipt

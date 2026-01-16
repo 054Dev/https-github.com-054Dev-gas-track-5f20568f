@@ -21,6 +21,7 @@ interface ReceiptData {
   templateSettings?: TemplateSettings;
   pricePerKg?: number;
   totalKg?: number;
+  customerDebt?: number;
 }
 
 const getMethodDisplay = (method: string) => {
@@ -191,6 +192,23 @@ export const generateReceiptPDF = (data: ReceiptData): jsPDF => {
   doc.setFont("helvetica", "bold");
   doc.text(`KES ${data.amount.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
   y += 25;
+
+  // Customer Debt Box (if exists)
+  if (data.customerDebt !== undefined && data.customerDebt > 0) {
+    doc.setFillColor(254, 226, 226); // Light red
+    doc.roundedRect(20, y, pageWidth - 40, 30, 3, 3, "F");
+    y += 10;
+
+    doc.setFontSize(10);
+    doc.setTextColor(185, 28, 28); // Dark red
+    doc.setFont("helvetica", "bold");
+    doc.text("OUTSTANDING BALANCE", pageWidth / 2, y, { align: "center" });
+    y += 10;
+
+    doc.setFontSize(16);
+    doc.text(`KES ${data.customerDebt.toLocaleString()}`, pageWidth / 2, y, { align: "center" });
+    y += 20;
+  }
 
   // Horizontal line
   doc.setDrawColor(200);

@@ -7,10 +7,7 @@ import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
 import { Download, FileText, DollarSign, Settings, Plus } from "lucide-react";
 import { format } from "date-fns";
 import {
@@ -30,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ReceiptDateFilter, DateFilterType } from "@/components/ReceiptDateFilter";
 
 interface Customer {
   id: string;
@@ -78,12 +76,11 @@ interface TemplateSettings {
 
 export default function ReceiptsAndOrders() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
-  const [selectedDate, setSelectedDate] = useState("");
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [filterType, setFilterType] = useState<DateFilterType>("today");
   const [payments, setPayments] = useState<Payment[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [showAll, setShowAll] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentDeliveryData, setPaymentDeliveryData] = useState<{ total_kg: number; price_per_kg_at_time: number; total_charge: number } | null>(null);
@@ -102,7 +99,7 @@ export default function ReceiptsAndOrders() {
     if (user) {
       loadData();
     }
-  }, [user, selectedDate, showAll]);
+  }, [user, dateRange]);
 
   const loadCustomers = async () => {
     const { data } = await supabase
@@ -171,51 +168,41 @@ export default function ReceiptsAndOrders() {
   const loadData = async () => {
     setIsLoadingData(true);
     try {
-      if (showAll) {
-        // Load all data
+      if (dateRange) {
         const { data: paymentsData } = await supabase
           .from("payments")
           .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+          .gte("paid_at", dateRange.start.toISOString())
+          .lte("paid_at", dateRange.end.toISOString())
           .order("paid_at", { ascending: false });
 
         const { data: deliveriesData } = await supabase
           .from("deliveries")
           .select("*, customers(shop_name, in_charge_name)")
-          .order("delivery_date", { ascending: false });
-
-        setPayments(paymentsData || []);
-        setDeliveries(deliveriesData || []);
-      } else if (selectedDate) {
-        // Load data for specific date
-        const { data: paymentsData } = await supabase
-          .from("payments")
-          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
-          .gte("paid_at", selectedDate)
-          .lt("paid_at", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
-          .order("paid_at", { ascending: false });
-
-        const { data: deliveriesData } = await supabase
-          .from("deliveries")
-          .select("*, customers(shop_name, in_charge_name)")
-          .gte("delivery_date", selectedDate)
-          .lt("delivery_date", new Date(new Date(selectedDate).getTime() + 86400000).toISOString())
+          .gte("delivery_date", dateRange.start.toISOString())
+          .lte("delivery_date", dateRange.end.toISOString())
           .order("delivery_date", { ascending: false });
 
         setPayments(paymentsData || []);
         setDeliveries(deliveriesData || []);
       } else {
-        // Default: load today's data
-        const today = new Date().toISOString().split("T")[0];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(today);
+        endOfDay.setHours(23, 59, 59, 999);
+        
         const { data: paymentsData } = await supabase
           .from("payments")
           .select("*, customers(shop_name, in_charge_name, arrears_balance)")
-          .gte("paid_at", today)
+          .gte("paid_at", today.toISOString())
+          .lte("paid_at", endOfDay.toISOString())
           .order("paid_at", { ascending: false });
 
         const { data: deliveriesData } = await supabase
           .from("deliveries")
           .select("*, customers(shop_name, in_charge_name)")
-          .gte("delivery_date", today)
+          .gte("delivery_date", today.toISOString())
+          .lte("delivery_date", endOfDay.toISOString())
           .order("delivery_date", { ascending: false });
 
         setPayments(paymentsData || []);
@@ -226,13 +213,16 @@ export default function ReceiptsAndOrders() {
     }
   };
 
-  // Fetch delivery data and live customer debt when payment is selected
+  const handleDateFilterChange = (range: { start: Date; end: Date } | null, type: DateFilterType) => {
+    setDateRange(range);
+    setFilterType(type);
+  };
+
   const fetchPaymentDeliveryData = async (payment: Payment) => {
     setSelectedPayment(payment);
     setPaymentDeliveryData(null);
     setLiveCustomerDebt(0);
     
-    // Fetch live customer debt
     const { data: customerData } = await supabase
       .from("customers")
       .select("arrears_balance")
@@ -270,7 +260,7 @@ export default function ReceiptsAndOrders() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `all-receipts_${selectedDate || format(new Date(), "yyyy-MM-dd")}.txt`;
+    a.download = `receipts_${format(new Date(), "yyyy-MM-dd")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -301,12 +291,15 @@ export default function ReceiptsAndOrders() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `sales_${selectedDate || "today"}.txt`;
+    a.download = `sales_${format(new Date(), "yyyy-MM-dd")}.txt`;
     a.click();
   };
 
   const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
   const totalSales = deliveries.reduce((sum, d) => sum + Number(d.total_charge) + Number(d.manual_adjustment || 0), 0);
+
+  // Suppress unused variable warnings
+  void filterType;
 
   if (!user) return null;
 
@@ -356,37 +349,11 @@ export default function ReceiptsAndOrders() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <Label htmlFor="date">Select Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={selectedDate}
-              onChange={(e) => {
-                setSelectedDate(e.target.value);
-                setShowAll(false);
-              }}
-            />
-          </div>
-          <div className="flex items-end gap-2">
-            <Button 
-              onClick={() => { setShowAll(true); setSelectedDate(""); }} 
-              variant={showAll ? "default" : "outline"}
-              disabled={isLoadingData}
-              className="transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md"
-            >
-              {isLoadingData && showAll ? "Loading..." : "View All"}
-            </Button>
-            <Button 
-              onClick={() => { setShowAll(false); setSelectedDate(""); }} 
-              variant={!showAll && !selectedDate ? "default" : "outline"}
-              disabled={isLoadingData}
-              className="transition-all duration-200 hover:scale-105 active:scale-95 hover:shadow-md"
-            >
-              Today
-            </Button>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 items-start sm:items-center">
+          <ReceiptDateFilter onFilterChange={handleDateFilterChange} />
+          {isLoadingData && (
+            <span className="text-sm text-muted-foreground">Loading...</span>
+          )}
         </div>
 
         <Tabs defaultValue="receipts" className="space-y-4">
@@ -512,7 +479,7 @@ export default function ReceiptsAndOrders() {
           {selectedPayment && (
             <div className="space-y-4">
               <ReceiptViewer
-                customerName={selectedPayment.customers?.in_charge_name || ""}
+                customerName={selectedPayment.customers?.in_charge_name || "Customer"}
                 amount={selectedPayment.amount_paid}
                 method={selectedPayment.method}
                 date={selectedPayment.paid_at}

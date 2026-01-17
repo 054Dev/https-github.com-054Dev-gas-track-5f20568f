@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
+import { useDeliveryLockStatus } from "@/hooks/useDeliveryLockStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface Delivery {
   total_charge: number;
   price_per_kg_at_time: number;
   manual_adjustment: number;
+  status: "pending" | "en_route" | "delivered";
 }
 
 export default function CustomerDetail() {
@@ -63,6 +65,7 @@ export default function CustomerDetail() {
   const [newPrice, setNewPrice] = useState("");
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
+  const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
 
   useEffect(() => {
     checkAuth();
@@ -123,7 +126,7 @@ export default function CustomerDetail() {
   const loadDeliveries = async () => {
     const { data, error } = await supabase
       .from("deliveries")
-      .select("id, delivery_date, total_kg, total_charge, price_per_kg_at_time, manual_adjustment")
+      .select("id, delivery_date, total_kg, total_charge, price_per_kg_at_time, manual_adjustment, status")
       .eq("customer_id", customerId)
       .order("delivery_date", { ascending: false });
 
@@ -175,7 +178,11 @@ export default function CustomerDetail() {
     navigate("/login");
   };
 
-  const handleEditDeliveryPrice = (delivery: Delivery) => {
+  const { checkLockStatus } = useDeliveryLockStatus();
+
+  const handleEditDeliveryPrice = async (delivery: Delivery) => {
+    const status = await checkLockStatus(delivery.id, delivery.status);
+    setEditLockStatus(status);
     setEditingDelivery(delivery);
     setEditPriceOpen(true);
   };
@@ -398,6 +405,8 @@ export default function CustomerDetail() {
             loadDeliveries();
             loadCustomerData();
           }}
+          isLocked={editLockStatus.isLocked}
+          lockReason={editLockStatus.lockReason}
         />
       )}
     </div>

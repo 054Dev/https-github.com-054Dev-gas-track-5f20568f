@@ -23,6 +23,8 @@ interface EditOrderPriceDialogProps {
   totalKg: number;
   currentTotalCharge: number;
   onSuccess: () => void;
+  isLocked?: boolean;
+  lockReason?: string;
 }
 
 export function EditOrderPriceDialog({
@@ -34,6 +36,8 @@ export function EditOrderPriceDialog({
   totalKg,
   currentTotalCharge,
   onSuccess,
+  isLocked = false,
+  lockReason = "",
 }: EditOrderPriceDialogProps) {
   const [newPricePerKg, setNewPricePerKg] = useState(currentPricePerKg.toString());
   const [updating, setUpdating] = useState(false);
@@ -100,56 +104,71 @@ export function EditOrderPriceDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Edit Order Price</AlertDialogTitle>
           <AlertDialogDescription>
-            This will update the price per kg for this order and automatically adjust the customer's balance.
+            {isLocked
+              ? lockReason
+              : "This will update the price per kg for this order and automatically adjust the customer's balance."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="newPrice">New Price per KG (KES)</Label>
-            <Input
-              id="newPrice"
-              type="number"
-              step="0.01"
-              value={newPricePerKg}
-              onChange={(e) => setNewPricePerKg(e.target.value)}
-            />
-          </div>
-
-          <div className="bg-muted p-4 rounded-lg space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Total Weight:</span>
-              <span className="font-medium">{totalKg} kg</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Current Total:</span>
-              <span className="font-medium">KES {currentTotalCharge.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>New Total:</span>
-              <span className="font-medium text-primary">KES {newTotalCharge.toLocaleString()}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between text-sm font-semibold">
-              <span>Balance Adjustment:</span>
-              <span className={priceDifference > 0 ? "text-destructive" : priceDifference < 0 ? "text-success" : ""}>
-                {priceDifference > 0 ? "+" : ""}KES {priceDifference.toLocaleString()}
-              </span>
+        {isLocked ? (
+          <div className="py-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 text-center">
+              <p className="text-sm text-destructive font-medium">🔒 Price Editing Locked</p>
+              <p className="text-xs text-muted-foreground mt-1">{lockReason}</p>
             </div>
           </div>
+        ) : (
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPrice">New Price per KG (KES)</Label>
+              <Input
+                id="newPrice"
+                type="number"
+                step="0.01"
+                value={newPricePerKg}
+                onChange={(e) => setNewPricePerKg(e.target.value)}
+              />
+            </div>
 
-          <p className="text-xs text-muted-foreground">
-            ⚠️ This action will immediately update the order and reflect on the customer's account.
-          </p>
-        </div>
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Total Weight:</span>
+                <span className="font-medium">{totalKg} kg</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Current Total:</span>
+                <span className="font-medium">KES {currentTotalCharge.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>New Total:</span>
+                <span className="font-medium text-primary">KES {newTotalCharge.toLocaleString()}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+                <span>Balance Adjustment:</span>
+                <span className={priceDifference > 0 ? "text-destructive" : priceDifference < 0 ? "text-success" : ""}>
+                  {priceDifference > 0 ? "+" : ""}KES {priceDifference.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              ⚠️ This action will immediately update the order and reflect on the customer's account.
+            </p>
+          </div>
+        )}
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={updating}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleConfirmUpdate}
-            disabled={updating || !newPricePerKg || parseFloat(newPricePerKg) <= 0}
-          >
-            {updating ? "Updating..." : "Confirm Update"}
-          </AlertDialogAction>
+          <AlertDialogCancel disabled={updating}>
+            {isLocked ? "Close" : "Cancel"}
+          </AlertDialogCancel>
+          {!isLocked && (
+            <AlertDialogAction
+              onClick={handleConfirmUpdate}
+              disabled={updating || !newPricePerKg || parseFloat(newPricePerKg) <= 0}
+            >
+              {updating ? "Updating..." : "Confirm Update"}
+            </AlertDialogAction>
+          )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

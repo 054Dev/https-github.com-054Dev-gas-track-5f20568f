@@ -324,7 +324,7 @@ serve(async (req) => {
         try {
           const supabaseUrl = Deno.env.get("SUPABASE_URL");
           const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-          
+
           await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
             method: "POST",
             headers: {
@@ -348,7 +348,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, payment }),
+        JSON.stringify({ success: true, payment, newArrears }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

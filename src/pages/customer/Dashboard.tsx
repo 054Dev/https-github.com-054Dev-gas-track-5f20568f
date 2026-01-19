@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PasswordStrength } from "@/components/PasswordStrength";
+import { validatePasswordPolicy } from "@/lib/password-utils";
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -132,10 +133,17 @@ export default function CustomerDashboard() {
       return;
     }
 
-    if (newPassword.length < 8) {
+    const { valid, message } = validatePasswordPolicy(newPassword, {
+      email: user.email || undefined,
+      username: customer.username,
+      fullName: customer.in_charge_name,
+      phone: customer.phone,
+    });
+
+    if (!valid) {
       toast({
         title: "Error",
-        description: "Password must be at least 8 characters",
+        description: message,
         variant: "destructive",
       });
       return;

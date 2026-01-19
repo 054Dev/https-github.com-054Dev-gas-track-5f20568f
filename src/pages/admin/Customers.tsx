@@ -163,10 +163,17 @@ export default function AdminCustomers() {
     setLoading(true);
 
     // Validate password
-    if (!newCustomer.password || newCustomer.password.length < 8) {
+    const { valid, message } = validatePasswordPolicy(newCustomer.password, {
+      email: newCustomer.email,
+      username: newCustomer.username,
+      fullName: newCustomer.in_charge_name,
+      phone: newCustomer.phone,
+    });
+
+    if (!valid) {
       toast({
         title: "Error",
-        description: "Please generate or enter a password with at least 8 characters",
+        description: message,
         variant: "destructive",
       });
       setLoading(false);
@@ -209,6 +216,15 @@ export default function AdminCustomers() {
         });
 
         if (roleError) throw roleError;
+
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: authData.user.id,
+          username: newCustomer.username,
+          full_name: newCustomer.in_charge_name,
+          phone: newCustomer.phone,
+        });
+
+        if (profileError) throw profileError;
 
         toast({
           title: "Success",

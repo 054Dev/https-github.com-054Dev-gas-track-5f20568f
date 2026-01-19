@@ -24,6 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { validatePasswordPolicy } from "@/lib/password-utils";
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
@@ -95,10 +96,17 @@ export default function Settings() {
       return;
     }
 
-    if (newPassword.length < 8) {
+    const { valid, message } = validatePasswordPolicy(newPassword, {
+      email,
+      username,
+      fullName,
+      phone,
+    });
+
+    if (!valid) {
       toast({
         title: "Weak Password",
-        description: "Password must be at least 8 characters long",
+        description: message,
         variant: "destructive",
       });
       return;

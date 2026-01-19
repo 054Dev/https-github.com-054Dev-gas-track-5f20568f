@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Eye, EyeOff, Copy } from "lucide-react";
-import { generateSecurePassword } from "@/lib/password-utils";
+import { generateSecurePassword, validatePasswordPolicy } from "@/lib/password-utils";
 
 export default function Users() {
   const [user, setUser] = useState<any>(null);
@@ -128,13 +128,24 @@ export default function Users() {
 
       // Always require a password - generate one if not provided for customers
       let password = newUser.password;
-      if (!password || password.length < 8) {
+      if (!password) {
         if (newUser.role === "customer") {
           password = generateSecurePassword(12);
           setGeneratedPassword(password);
         } else {
-          throw new Error("Password must be at least 8 characters");
+          throw new Error("Password is required");
         }
+      }
+
+      const { valid, message } = validatePasswordPolicy(password, {
+        email: newUser.email,
+        username: newUser.username,
+        fullName: newUser.fullName,
+        phone: newUser.phone,
+      });
+
+      if (!valid) {
+        throw new Error(message);
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -158,6 +169,15 @@ export default function Users() {
         });
 
         if (roleError) throw roleError;
+
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: authData.user.id,
+          username: newUser.username,
+          full_name: newUser.fullName,
+          phone: newUser.phone,
+        });
+
+        if (profileError) throw profileError;
       }
 
       toast({

@@ -118,13 +118,23 @@ serve(async (req) => {
       }
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-      
+
       if (error) {
         console.error("Error deleting user:", error);
         return new Response(
           JSON.stringify({ error: "Failed to delete user" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Best-effort cleanup of public tables (prevents "ghost" accounts/data)
+      try {
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+        await supabaseAdmin.from("customers").delete().eq("user_id", userId);
+        await supabaseAdmin.from("profiles").delete().eq("id", userId);
+        await supabaseAdmin.from("deletion_requests").delete().eq("user_id", userId);
+      } catch (cleanupError) {
+        console.error("Cleanup error after user deletion:", cleanupError);
       }
 
       console.log("User deleted successfully:", userId);

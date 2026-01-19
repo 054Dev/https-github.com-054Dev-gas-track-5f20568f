@@ -80,25 +80,39 @@ export default function DeletionRequests() {
       const { data, error } = await supabase
         .from("deletion_requests")
         .select("*")
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Fetch profile data separately
-      const requestsWithProfiles = await Promise.all(
-        (data || []).map(async (request) => {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("username, full_name")
-            .eq("id", request.user_id)
-            .single();
+      const userIds = Array.from(new Set((data || []).map((r) => r.user_id))).filter(Boolean);
 
-          return {
-            ...request,
-            profile: profileData
-          };
-        })
-      );
+      const [{ data: profiles }, { data: customers }] = await Promise.all([
+        userIds.length
+          ? supabase.from("profiles").select("id, username, full_name").in("id", userIds)
+          : Promise.resolve({ data: [] as any[] }),
+        userIds.length
+          ? supabase
+              .from("customers")
+              .select("user_id, username, in_charge_name, shop_name")
+              .in("user_id", userIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ] as any);
+
+      const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
+      const customerByUserId = new Map((customers || []).map((c: any) => [c.user_id, c]));
+
+      const requestsWithProfiles: DeletionRequest[] = (data || []).map((request: any) => {
+        const p = profileById.get(request.user_id);
+        const c = customerByUserId.get(request.user_id);
+
+        return {
+          ...request,
+          profile: {
+            username: p?.username || c?.username || "unknown",
+            full_name: p?.full_name || c?.in_charge_name || c?.shop_name || "Unknown User",
+          },
+        };
+      });
 
       setRequests(requestsWithProfiles);
     } catch (error: any) {
@@ -115,9 +129,19 @@ export default function DeletionRequests() {
   const handleAction = async () => {
     if (!selectedRequest || !actionType) return;
 
+    // Prevent the known 400 error (self-deletion restriction)
+    if (actionType === "approve" && selectedRequest.user_id === user?.id) {
+      toast({
+        title: "Not allowed",
+        description: "You cannot approve deletion of your own account. Another admin must approve it.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      if (actionType === 'approve') {
+      if (actionType === "approve") {
         // Delete the user's auth account via server-side edge function
         const { data, error: deleteError } = await supabase.functions.invoke("admin-operations", {
           body: {
@@ -125,7 +149,7 @@ export default function DeletionRequests() {
             userId: selectedRequest.user_id,
           },
         });
-        
+
         if (deleteError) throw deleteError;
         if (data?.error) throw new Error(data.error);
 
@@ -133,11 +157,11 @@ export default function DeletionRequests() {
         await supabase
           .from("deletion_requests")
           .update({
-            status: 'approved',
+            status: "approved",
             handled_by: user?.id,
-            handled_at: new Date().toISOString()
+            handled_at: new Date().toISOString(),
           })
-          .eq('id', selectedRequest.id);
+          .eq("id", selectedRequest.id);
 
         toast({
           title: "Account Deleted",
@@ -148,11 +172,11 @@ export default function DeletionRequests() {
         await supabase
           .from("deletion_requests")
           .update({
-            status: 'rejected',
+            status: "rejected",
             handled_by: user?.id,
-            handled_at: new Date().toISOString()
+            handled_at: new Date().toISOString(),
           })
-          .eq('id', selectedRequest.id);
+          .eq("id", selectedRequest.id);
 
         toast({
           title: "Request Rejected",

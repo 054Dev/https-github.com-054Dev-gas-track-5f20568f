@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { PasswordStrength } from "@/components/PasswordStrength";
+import { validatePasswordPolicy } from "@/lib/password-utils";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -34,8 +35,15 @@ export default function Signup() {
         throw new Error("Passwords do not match");
       }
 
-      if (formData.password.length < 8) {
-        throw new Error("Password must be at least 8 characters");
+      const { valid, message } = validatePasswordPolicy(formData.password, {
+        email: formData.email,
+        username: formData.username,
+        fullName: formData.inChargeName,
+        phone: formData.phone,
+      });
+
+      if (!valid) {
+        throw new Error(message);
       }
 
       // Create auth user
@@ -64,6 +72,16 @@ export default function Signup() {
           });
 
         if (roleError) throw roleError;
+
+        // Create profile record (used across admin UIs)
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: authData.user.id,
+          username: formData.username,
+          full_name: formData.inChargeName,
+          phone: formData.phone,
+        });
+
+        if (profileError) throw profileError;
 
         // Create customer record
         const { error: customerError } = await supabase

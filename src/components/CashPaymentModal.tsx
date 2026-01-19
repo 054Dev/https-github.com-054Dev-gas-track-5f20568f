@@ -61,6 +61,7 @@ export function CashPaymentModal({
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Cash Payment Recorded",

@@ -33,10 +33,18 @@ export function Footer() {
   };
 
   const handleWhatsApp = () => {
-    window.open(
-      `https://wa.me/${ADMIN_PHONE.replace(/\+/g, "")}?text=Hello, I need assistance`,
-      "_blank"
-    );
+    const phone = ADMIN_PHONE.replace(/[^0-9]/g, "");
+    const text = encodeURIComponent("Hello, I need assistance");
+    const webUrl = `https://wa.me/${phone}?text=${text}`;
+
+    // Try native scheme first on mobile (avoids some network blocks/redirects)
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
+      setTimeout(() => window.open(webUrl, "_blank"), 700);
+      return;
+    }
+
+    window.open(webUrl, "_blank");
   };
 
   const handleSubmitNotification = async (e: React.FormEvent) => {

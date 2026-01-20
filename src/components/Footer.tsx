@@ -14,8 +14,8 @@ import { Textarea } from "./ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const ADMIN_PHONE = "+254712345678"; // Default admin phone
-const ADMIN_EMAIL = "admin@finegas.com";
+const ADMIN_PHONE = "+254702255315"; // Developer/admin contact
+const ADMIN_EMAIL = "devmimi2@gmail.com";
 
 export function Footer() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -35,9 +35,9 @@ export function Footer() {
   const handleWhatsApp = () => {
     const phone = ADMIN_PHONE.replace(/[^0-9]/g, "");
     const text = encodeURIComponent("Hello, I need assistance");
-    const webUrl = `https://wa.me/${phone}?text=${text}`;
+    const webUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
 
-    // Try native scheme first on mobile (avoids some network blocks/redirects)
+    // Prefer native scheme on mobile; fallback to WhatsApp Web (avoids wa.me -> api.whatsapp.com redirects)
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
       window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
       setTimeout(() => window.open(webUrl, "_blank"), 700);

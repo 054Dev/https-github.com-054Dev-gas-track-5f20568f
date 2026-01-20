@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { generateSecurePassword } from "@/lib/password-utils";
+import { generateSecurePassword, validatePasswordPolicy } from "@/lib/password-utils";
 
 interface Customer {
   id: string;

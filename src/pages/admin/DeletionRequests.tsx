@@ -102,8 +102,8 @@ export default function DeletionRequests() {
       const customerByUserId = new Map((customers || []).map((c: any) => [c.user_id, c]));
 
       const requestsWithProfiles: DeletionRequest[] = (data || []).map((request: any) => {
-        const p = profileById.get(request.user_id);
-        const c = customerByUserId.get(request.user_id);
+        const p = profileById.get(request.user_id) as { id: string; username: string; full_name: string } | undefined;
+        const c = customerByUserId.get(request.user_id) as { user_id: string; username: string; in_charge_name: string; shop_name: string } | undefined;
 
         return {
           ...request,

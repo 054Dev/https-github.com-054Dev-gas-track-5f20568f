@@ -343,13 +343,21 @@ export default function DeletionRequests() {
                         variant="secondary"
                         size="sm"
                         onClick={() => {
+                          const text = encodeURIComponent("Hello");
                           supabase.from("customers")
                             .select("phone")
                             .eq("user_id", request.user_id)
                             .maybeSingle()
                             .then(({ data }) => {
                               if (data?.phone) {
-                                window.open(`https://wa.me/${data.phone.replace(/\+/g, "")}`, "_blank");
+                                const phone = data.phone.replace(/[^0-9]/g, "");
+                                const webUrl = `https://web.whatsapp.com/send?phone=${phone}&text=${text}`;
+                                if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                                  window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
+                                  setTimeout(() => window.open(webUrl, "_blank"), 700);
+                                  return;
+                                }
+                                window.open(webUrl, "_blank");
                               } else {
                                 toast({
                                   title: "No phone number",

@@ -117,24 +117,25 @@ serve(async (req) => {
         );
       }
 
+      // Cleanup public data first (avoids FK/RLS issues during auth user deletion)
+      try {
+        await supabaseAdmin.from("deletion_requests").delete().eq("user_id", userId);
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
+        await supabaseAdmin.from("customers").delete().eq("user_id", userId);
+        await supabaseAdmin.from("profiles").delete().eq("id", userId);
+      } catch (cleanupError) {
+        console.error("Pre-delete cleanup error:", cleanupError);
+        // Continue anyway; auth deletion might still succeed
+      }
+
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
       if (error) {
         console.error("Error deleting user:", error);
         return new Response(
-          JSON.stringify({ error: "Failed to delete user" }),
+          JSON.stringify({ error: `Failed to delete user: ${error.message || "unknown error"}` }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-      }
-
-      // Best-effort cleanup of public tables (prevents "ghost" accounts/data)
-      try {
-        await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-        await supabaseAdmin.from("customers").delete().eq("user_id", userId);
-        await supabaseAdmin.from("profiles").delete().eq("id", userId);
-        await supabaseAdmin.from("deletion_requests").delete().eq("user_id", userId);
-      } catch (cleanupError) {
-        console.error("Cleanup error after user deletion:", cleanupError);
       }
 
       console.log("User deleted successfully:", userId);

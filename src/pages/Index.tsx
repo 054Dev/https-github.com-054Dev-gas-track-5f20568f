@@ -143,7 +143,7 @@ export default function Index() {
                     <a href="tel:+254702255315" className="text-sm text-muted-foreground hover:text-primary block">
                       +254 702 255 315
                     </a>
-                    <a href="https://wa.me/254702255315" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                    <a href="https://web.whatsapp.com/send?phone=254702255315" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
                       Chat on WhatsApp
                     </a>
                   </div>

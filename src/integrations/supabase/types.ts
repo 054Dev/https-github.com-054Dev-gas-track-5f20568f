@@ -232,6 +232,30 @@ export type Database = {
           },
         ]
       }
+      dev_db_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json
+          id: string
+          label: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: Json
+          id?: string
+          label?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          label?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null

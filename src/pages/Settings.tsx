@@ -24,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { validatePasswordPolicy } from "@/lib/password-utils";
+import { validateAdminPasswordPolicy, validateCustomerPasswordPolicy } from "@/lib/password-utils";
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
@@ -96,12 +96,11 @@ export default function Settings() {
       return;
     }
 
-    const { valid, message } = validatePasswordPolicy(newPassword, {
-      email,
-      username,
-      fullName,
-      phone,
-    });
+    // Use stricter validation for admin/staff, basic for customers
+    const isAdminOrStaff = userRole && ["admin", "co_admin", "staff"].includes(userRole);
+    const { valid, message } = isAdminOrStaff 
+      ? validateAdminPasswordPolicy(newPassword, { email, username, fullName, phone })
+      : validateCustomerPasswordPolicy(newPassword);
 
     if (!valid) {
       toast({

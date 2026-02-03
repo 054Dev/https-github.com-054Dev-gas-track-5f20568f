@@ -58,32 +58,50 @@ function hasEasyPatterns(password: string) {
 }
 
 /**
- * Validate password strength (strict)
- * Returns true if password meets requirements
+ * Calculate password strength score
  */
-export function validatePasswordStrength(password: string): { valid: boolean; message: string } {
-  if (password.length < 12) {
-    return { valid: false, message: "Password must be at least 12 characters" };
+export function getPasswordScore(password: string): number {
+  if (!password) return 0;
+  
+  let score = 0;
+  
+  // Length
+  if (password.length >= 8) score += 20;
+  if (password.length >= 12) score += 10;
+  if (password.length >= 16) score += 10;
+  
+  // Lowercase
+  if (/[a-z]/.test(password)) score += 15;
+  
+  // Uppercase
+  if (/[A-Z]/.test(password)) score += 15;
+  
+  // Numbers
+  if (/\d/.test(password)) score += 15;
+  
+  // Special characters
+  if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score += 15;
+  
+  return score;
+}
+
+/**
+ * Validate password strength for admins (must be >= "good", i.e. score >= 60)
+ * Returns true if password meets admin requirements
+ */
+export function validateAdminPasswordStrength(password: string): { valid: boolean; message: string } {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters" };
   }
 
   if (/\s/.test(password)) {
     return { valid: false, message: "Password must not contain spaces" };
   }
 
-  if (!/[A-Z]/.test(password)) {
-    return { valid: false, message: "Password must contain at least one uppercase letter" };
-  }
-
-  if (!/[a-z]/.test(password)) {
-    return { valid: false, message: "Password must contain at least one lowercase letter" };
-  }
-
-  if (!/[0-9]/.test(password)) {
-    return { valid: false, message: "Password must contain at least one number" };
-  }
-
-  if (!/[!@#$%^&*]/.test(password)) {
-    return { valid: false, message: "Password must contain at least one special character" };
+  const score = getPasswordScore(password);
+  
+  if (score < 60) {
+    return { valid: false, message: "Password must be at least 'Good' strength (uppercase, lowercase, number, and special character recommended)" };
   }
 
   if (hasEasyPatterns(password)) {
@@ -94,11 +112,25 @@ export function validatePasswordStrength(password: string): { valid: boolean; me
 }
 
 /**
- * Validate password strength + reject passwords that contain personal info.
- * Note: we cannot guarantee whether a password exists online without a breach-check API.
+ * Basic password validation (for customers - no strength requirement)
  */
-export function validatePasswordPolicy(password: string, ctx?: PasswordPolicyContext) {
-  const base = validatePasswordStrength(password);
+export function validateBasicPassword(password: string): { valid: boolean; message: string } {
+  if (password.length < 8) {
+    return { valid: false, message: "Password must be at least 8 characters" };
+  }
+
+  if (/\s/.test(password)) {
+    return { valid: false, message: "Password must not contain spaces" };
+  }
+
+  return { valid: true, message: "Password accepted" };
+}
+
+/**
+ * Validate password policy for admins (strict: >= good strength + no personal info)
+ */
+export function validateAdminPasswordPolicy(password: string, ctx?: PasswordPolicyContext) {
+  const base = validateAdminPasswordStrength(password);
   if (!base.valid) return base;
 
   if (containsPersonalInfo(password, ctx)) {
@@ -106,4 +138,29 @@ export function validatePasswordPolicy(password: string, ctx?: PasswordPolicyCon
   }
 
   return { valid: true, message: "Password is strong" };
+}
+
+/**
+ * Validate password policy for customers (basic: 8+ chars, no spaces)
+ */
+export function validateCustomerPasswordPolicy(password: string) {
+  return validateBasicPassword(password);
+}
+
+/**
+ * Validate email format
+ */
+export function validateEmail(email: string): { valid: boolean; message: string } {
+  if (!email || email.trim().length === 0) {
+    return { valid: false, message: "Email is required" };
+  }
+  
+  // RFC 5322 compliant email regex (simplified but robust)
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  
+  if (!emailRegex.test(email.trim())) {
+    return { valid: false, message: "Please enter a valid email address" };
+  }
+  
+  return { valid: true, message: "Email is valid" };
 }

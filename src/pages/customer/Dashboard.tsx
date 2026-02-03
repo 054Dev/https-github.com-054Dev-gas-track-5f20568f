@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { PasswordStrength } from "@/components/PasswordStrength";
-import { validatePasswordPolicy } from "@/lib/password-utils";
+import { validateCustomerPasswordPolicy } from "@/lib/password-utils";
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -133,12 +133,8 @@ export default function CustomerDashboard() {
       return;
     }
 
-    const { valid, message } = validatePasswordPolicy(newPassword, {
-      email: user.email || undefined,
-      username: customer.username,
-      fullName: customer.in_charge_name,
-      phone: customer.phone,
-    });
+    // Basic password validation for customers (no strength requirement)
+    const { valid, message } = validateCustomerPasswordPolicy(newPassword);
 
     if (!valid) {
       toast({

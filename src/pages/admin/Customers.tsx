@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { generateSecurePassword, validatePasswordPolicy } from "@/lib/password-utils";
+import { generateSecurePassword, validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
 
 interface Customer {
   id: string;
@@ -162,13 +162,20 @@ export default function AdminCustomers() {
     e.preventDefault();
     setLoading(true);
 
-    // Validate password
-    const { valid, message } = validatePasswordPolicy(newCustomer.password, {
-      email: newCustomer.email,
-      username: newCustomer.username,
-      fullName: newCustomer.in_charge_name,
-      phone: newCustomer.phone,
-    });
+    // Validate email format
+    const emailCheck = validateEmail(newCustomer.email);
+    if (!emailCheck.valid) {
+      toast({
+        title: "Invalid Email",
+        description: emailCheck.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Basic password validation for customers (no strength requirement)
+    const { valid, message } = validateCustomerPasswordPolicy(newCustomer.password);
 
     if (!valid) {
       toast({

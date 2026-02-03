@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Eye, EyeOff, Copy } from "lucide-react";
-import { generateSecurePassword, validatePasswordPolicy } from "@/lib/password-utils";
+import { generateSecurePassword, validateAdminPasswordPolicy, validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
 
 export default function Users() {
   const [user, setUser] = useState<any>(null);
@@ -137,12 +137,22 @@ export default function Users() {
         }
       }
 
-      const { valid, message } = validatePasswordPolicy(password, {
-        email: newUser.email,
-        username: newUser.username,
-        fullName: newUser.fullName,
-        phone: newUser.phone,
-      });
+      // Validate email format
+      const emailCheck = validateEmail(newUser.email);
+      if (!emailCheck.valid) {
+        throw new Error(emailCheck.message);
+      }
+
+      // Use stricter validation for admin/staff, basic for customers
+      const isAdminOrStaff = ["admin", "co_admin", "staff"].includes(newUser.role);
+      const { valid, message } = isAdminOrStaff
+        ? validateAdminPasswordPolicy(password, {
+            email: newUser.email,
+            username: newUser.username,
+            fullName: newUser.fullName,
+            phone: newUser.phone,
+          })
+        : validateCustomerPasswordPolicy(password);
 
       if (!valid) {
         throw new Error(message);

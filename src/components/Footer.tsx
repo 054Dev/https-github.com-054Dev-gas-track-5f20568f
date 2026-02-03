@@ -35,10 +35,9 @@ export function Footer() {
   const handleWhatsApp = () => {
     const phone = ADMIN_PHONE.replace(/[^0-9]/g, "");
     const text = encodeURIComponent("Hello, I need assistance");
-    // Strictly use wa.me (no whatsapp:// scheme, no web.whatsapp.com, no popups)
-    // Use same-tab navigation to avoid popup blockers on authenticated pages.
+    // Strictly use wa.me, open in new tab
     const waUrl = `https://wa.me/${phone}?text=${text}`;
-    window.location.href = waUrl;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleSubmitNotification = async (e: React.FormEvent) => {

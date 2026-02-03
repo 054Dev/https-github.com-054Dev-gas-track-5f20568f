@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { PasswordStrength } from "@/components/PasswordStrength";
-import { validatePasswordPolicy } from "@/lib/password-utils";
+import { validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -35,13 +35,14 @@ export default function Signup() {
         throw new Error("Passwords do not match");
       }
 
-      const { valid, message } = validatePasswordPolicy(formData.password, {
-        email: formData.email,
-        username: formData.username,
-        fullName: formData.inChargeName,
-        phone: formData.phone,
-      });
+      // Validate email format
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.valid) {
+        throw new Error(emailValidation.message);
+      }
 
+      // Basic password validation for customers (no strength requirement)
+      const { valid, message } = validateCustomerPasswordPolicy(formData.password);
       if (!valid) {
         throw new Error(message);
       }

@@ -35,20 +35,10 @@ export function Footer() {
   const handleWhatsApp = () => {
     const phone = ADMIN_PHONE.replace(/[^0-9]/g, "");
     const text = encodeURIComponent("Hello, I need assistance");
+    // Strictly use wa.me (no whatsapp:// scheme, no web.whatsapp.com, no popups)
+    // Use same-tab navigation to avoid popup blockers on authenticated pages.
     const waUrl = `https://wa.me/${phone}?text=${text}`;
-
-    // Try native app first on mobile, then wa.me, then copy fallback
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
-      // Fallback to wa.me after a short delay if native doesn't work
-      setTimeout(() => {
-        window.open(waUrl, "_blank");
-      }, 800);
-      return;
-    }
-
-    // Desktop: use wa.me directly (more reliable than web.whatsapp.com)
-    window.open(waUrl, "_blank");
+    window.location.href = waUrl;
   };
 
   const handleSubmitNotification = async (e: React.FormEvent) => {

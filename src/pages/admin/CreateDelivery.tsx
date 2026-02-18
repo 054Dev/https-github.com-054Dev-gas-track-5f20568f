@@ -199,6 +199,22 @@ export default function CreateDelivery() {
 
       if (updateError) throw updateError;
 
+      // Auto-bill from overpayment credit if customer has a credit balance
+      if ((selectedCustomer.arrears_balance || 0) < 0) {
+        try {
+          await supabase.functions.invoke("intasend-payment", {
+            body: {
+              action: "overpayment-billing",
+              customerId: selectedCustomer.id,
+              deliveryId: deliveryData.id,
+            },
+          });
+        } catch (overpayErr) {
+          console.error("Overpayment billing error:", overpayErr);
+          // Non-fatal: delivery already created
+        }
+      }
+
       toast({
         title: "Success",
         description: "Delivery created successfully",

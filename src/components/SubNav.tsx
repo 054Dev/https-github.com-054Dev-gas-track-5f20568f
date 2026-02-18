@@ -128,6 +128,14 @@ export function SubNav({ role }: SubNavProps) {
         <Package className="inline-block mr-2 h-4 w-4" />
         My Orders
       </NavLink>
+      <NavLink
+        to="/customer/receipts"
+        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
+        activeClassName="bg-accent text-accent-foreground"
+      >
+        <Receipt className="inline-block mr-2 h-4 w-4" />
+        Receipts
+      </NavLink>
     </>
   );
 

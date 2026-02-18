@@ -150,6 +150,22 @@ export default function PlaceOrder() {
 
       if (updateError) throw updateError;
 
+      // Auto-bill from overpayment credit if customer has a credit balance (negative arrears)
+      if ((customer.arrears_balance || 0) < 0) {
+        try {
+          await supabase.functions.invoke("intasend-payment", {
+            body: {
+              action: "overpayment-billing",
+              customerId: customer.id,
+              deliveryId: deliveryData.id,
+            },
+          });
+        } catch (overpayErr) {
+          console.error("Overpayment billing error:", overpayErr);
+          // Non-fatal: order already placed
+        }
+      }
+
       // Notify admin if customer has pending balance
       if (customer.arrears_balance > 0) {
         await supabase.from("notifications").insert({

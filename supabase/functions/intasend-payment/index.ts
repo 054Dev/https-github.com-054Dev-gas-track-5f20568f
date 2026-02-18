@@ -353,6 +353,140 @@ serve(async (req) => {
       );
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // ACTION: overpayment-billing
+    // Called after a delivery is created to check if the customer
+    // has a credit balance and auto-bill against the new delivery.
+    // ──────────────────────────────────────────────────────────────
+    if (action === "overpayment-billing") {
+      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError) {
+        return new Response(
+          JSON.stringify({ error: authError }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { customerId, deliveryId } = data;
+      if (!customerId || !deliveryId) {
+        return new Response(
+          JSON.stringify({ error: "customerId and deliveryId are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Fetch customer and delivery
+      const [{ data: customer }, { data: delivery }] = await Promise.all([
+        supabaseAdmin
+          .from("customers")
+          .select("email, in_charge_name, arrears_balance")
+          .eq("id", customerId)
+          .single(),
+        supabaseAdmin
+          .from("deliveries")
+          .select("total_charge, delivery_date")
+          .eq("id", deliveryId)
+          .single(),
+      ]);
+
+      if (!customer || !delivery) {
+        return new Response(
+          JSON.stringify({ error: "Customer or delivery not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const currentBalance = Number(customer.arrears_balance || 0);
+      const orderCost = Number(delivery.total_charge);
+
+      // Only auto-bill if customer has credit (negative arrears = credit)
+      if (currentBalance >= 0) {
+        return new Response(
+          JSON.stringify({ success: true, message: "No credit to apply", creditApplied: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Credit amount available (positive value)
+      const creditAvailable = Math.abs(currentBalance);
+      // Amount to bill from overpayment = min(credit, orderCost)
+      const billedAmount = Math.min(creditAvailable, orderCost);
+      const newArrears = currentBalance + billedAmount; // moves toward 0 or stays negative
+
+      const datestamp = new Date().toISOString();
+
+      // Record an overpayment payment entry
+      const { data: payment, error: paymentError } = await supabaseAdmin
+        .from("payments")
+        .insert({
+          customer_id: customerId,
+          delivery_id: deliveryId,
+          amount_paid: billedAmount,
+          method: "overpayment",
+          payment_provider: "system",
+          payment_status: "completed",
+          reference: `OVERPAY-${Date.now()}`,
+          transaction_id: `OVP-${deliveryId.slice(0, 8)}-${Date.now()}`,
+        })
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error("Overpayment billing error:", paymentError);
+        return new Response(
+          JSON.stringify({ error: "Failed to record overpayment billing" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update customer arrears
+      await supabaseAdmin
+        .from("customers")
+        .update({ arrears_balance: newArrears })
+        .eq("id", customerId);
+
+      console.log(`Overpayment billed: KES ${billedAmount} for delivery ${deliveryId}. New balance: ${newArrears}`);
+
+      // Send receipt email for overpayment billing
+      if (customer.email && payment) {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+          await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${anonKey}`,
+            },
+            body: JSON.stringify({
+              paymentId: payment.id,
+              customerEmail: customer.email,
+              customerName: customer.in_charge_name,
+              amount: billedAmount,
+              method: "overpayment",
+              transactionId: payment.reference,
+              paidAt: datestamp,
+              notes: `Billed from overpayment on ${new Date(datestamp).toLocaleString("en-KE")}`,
+            }),
+          });
+        } catch (emailError) {
+          console.error("Failed to send overpayment receipt email:", emailError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          creditApplied: billedAmount,
+          newArrears,
+          payment,
+          message: `Billed KES ${billedAmount} from overpayment`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: "Invalid action" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -365,3 +499,4 @@ serve(async (req) => {
     );
   }
 });
+

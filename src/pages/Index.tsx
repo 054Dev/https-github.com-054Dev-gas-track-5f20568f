@@ -93,9 +93,6 @@ export default function Index() {
               <Button asChild size="lg" className="text-lg">
                 <Link to="/login">Get Started</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg">
-                <a href="#features">Learn More</a>
-              </Button>
             </div>
           </div>
         </div>

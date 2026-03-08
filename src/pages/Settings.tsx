@@ -105,6 +105,7 @@ export default function Settings() {
           phone: profileData?.phone || customerData.phone || "",
           shopName: customerData.shop_name || "",
           address: customerData.address || "",
+          username: profileData?.username || "",
         });
       } else {
         setOriginalValues({
@@ -112,6 +113,7 @@ export default function Settings() {
           phone: profileData?.phone || "",
           shopName: "",
           address: "",
+          username: profileData?.username || "",
         });
       }
     } catch (error: any) {

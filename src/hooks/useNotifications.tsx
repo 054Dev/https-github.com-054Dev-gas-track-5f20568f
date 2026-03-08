@@ -41,7 +41,7 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
       // Customers only see notifications sent TO them (not their own contact_request)
       query = query
         .eq("customer_id", customerId)
-        .not("type", "in", `(${CUSTOMER_TO_ADMIN_TYPES.join(",")})`);
+        .neq("type", "contact_request");
     }
 
     const { data } = await query;

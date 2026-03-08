@@ -246,8 +246,8 @@ serve(async (req) => {
 
     if (action === "cash-payment") {
       // Verify authentication
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -255,7 +255,7 @@ serve(async (req) => {
       }
 
       // Verify admin/staff role for cash payments
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required to record cash payments" }),

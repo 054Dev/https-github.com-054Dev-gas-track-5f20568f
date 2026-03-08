@@ -298,7 +298,7 @@ serve(async (req) => {
           method: "cash",
           payment_provider: "manual",
           payment_status: "completed",
-          handled_by: user.id, // Use authenticated user, not client-provided
+          handled_by: userId, // Use authenticated user, not client-provided
           reference: `CASH-${Date.now()}`,
         })
         .select()

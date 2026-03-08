@@ -339,7 +339,7 @@ export default function CylinderManagement() {
           </Card>
         )}
       </main>
-      <Footer />
+      <Footer role="admin" />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

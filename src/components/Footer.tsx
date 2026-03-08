@@ -17,7 +17,12 @@ import { supabase } from "@/integrations/supabase/client";
 const ADMIN_PHONE = "+254702255315"; // Developer/admin contact
 const ADMIN_EMAIL = "devmimi2@gmail.com";
 
-export function Footer() {
+interface FooterProps {
+  role?: "admin" | "co_admin" | "staff" | "customer";
+}
+
+export function Footer({ role }: FooterProps) {
+  const isAdmin = role === "admin" || role === "co_admin" || role === "staff";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devDialogOpen, setDevDialogOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
@@ -99,35 +104,37 @@ export function Footer() {
                 <Info className="h-3 w-3" />
               </Button>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCall}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <Phone className="h-4 w-4" />
-                <span className="text-xs md:text-sm">Call Admin</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleWhatsApp}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span className="text-xs md:text-sm">WhatsApp</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setDialogOpen(true)}
-                className="gap-2 w-full sm:w-auto"
-              >
-                <Bell className="h-4 w-4" />
-                <span className="text-xs md:text-sm">Contact</span>
-              </Button>
-            </div>
+            {!isAdmin && (
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCall}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Phone className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">Call Admin</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleWhatsApp}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">WhatsApp</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDialogOpen(true)}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <Bell className="h-4 w-4" />
+                  <span className="text-xs md:text-sm">Contact</span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </footer>

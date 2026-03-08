@@ -231,7 +231,7 @@ export default function SubAdmins() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer role="admin" />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

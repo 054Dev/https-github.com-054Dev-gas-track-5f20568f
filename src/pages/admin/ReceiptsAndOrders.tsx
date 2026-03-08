@@ -507,7 +507,7 @@ export default function ReceiptsAndOrders() {
         </DialogContent>
       </Dialog>
 
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

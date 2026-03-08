@@ -166,7 +166,7 @@ export default function AdminNotifications() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer role="admin" />
 
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
         <DialogContent>

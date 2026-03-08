@@ -227,7 +227,7 @@ export default function DeletionRequests() {
         <div className="flex-1 flex items-center justify-center">
           <p>Loading...</p>
         </div>
-        <Footer />
+        <Footer role="admin" />
       </div>
     );
   }
@@ -424,7 +424,7 @@ export default function DeletionRequests() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

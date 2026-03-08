@@ -222,7 +222,7 @@ export default function Contacts() {
           ))}
         </div>
       </main>
-      <Footer />
+      <Footer role="admin" />
 
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent>

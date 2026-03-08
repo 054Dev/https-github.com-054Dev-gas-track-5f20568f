@@ -350,7 +350,7 @@ export default function Services() {
           </Card>
         )}
       </main>
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

@@ -144,6 +144,14 @@ export function SubNav({ role }: SubNavProps) {
         <Receipt className="inline-block mr-2 h-4 w-4" />
         Receipts
       </NavLink>
+      <NavLink
+        to="/customer/notifications"
+        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
+        activeClassName="bg-accent text-accent-foreground"
+      >
+        <Bell className="inline-block mr-2 h-4 w-4" />
+        Notifications
+      </NavLink>
     </>
   );
 

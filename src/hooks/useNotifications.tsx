@@ -101,6 +101,12 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
         },
         (payload) => {
           const newNotification = payload.new as Notification;
+          
+          // Filter realtime events by direction too
+          const isCustomerToAdmin = CUSTOMER_TO_ADMIN_TYPES.includes(newNotification.type);
+          if (isAdmin && !isCustomerToAdmin) return;
+          if (!isAdmin && isCustomerToAdmin) return;
+          
           setNotifications((prev) => [newNotification, ...prev]);
 
           if (audioRef.current) {

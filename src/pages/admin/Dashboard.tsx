@@ -30,6 +30,7 @@ export default function AdminDashboard() {
   });
   const [showHidden, setShowHidden] = useState(false);
   const [debtsModalOpen, setDebtsModalOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ isAdmin: true });
 
   const toggleCardVisibility = (cardId: string) => {
     const newHidden = hiddenCards.includes(cardId)

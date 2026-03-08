@@ -160,7 +160,7 @@ export default function ReceiptsAndOrders() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...session.user, ...profile, role: roleData.role });
   };

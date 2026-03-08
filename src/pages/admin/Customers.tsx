@@ -86,7 +86,7 @@ export default function AdminCustomers() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...session.user, ...profile, role: roleData.role });
     setLoading(false);

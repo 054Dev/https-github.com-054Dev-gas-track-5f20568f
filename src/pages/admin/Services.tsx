@@ -72,7 +72,7 @@ export default function Services() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...profile, role: roleData.role });
     setLoading(false);

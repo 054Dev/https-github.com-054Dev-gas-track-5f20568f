@@ -243,7 +243,7 @@ export default function Settings() {
       }
 
       // Update original values
-      setOriginalValues({ fullName, phone, shopName, address });
+      setOriginalValues({ fullName, phone, shopName, address, username });
 
       toast({
         title: "Success",

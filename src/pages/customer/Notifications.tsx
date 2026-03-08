@@ -4,19 +4,15 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
-import { NotificationBell } from "@/components/NotificationBell";
+import { CustomerNotificationBell } from "@/components/CustomerNotificationBell";
+import { NotificationItem } from "@/components/NotificationItem";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Bell, CheckCheck, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { Bell } from "lucide-react";
 
 export default function CustomerNotifications() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [customer, setCustomer] = useState<any>(null);
 
@@ -54,13 +50,7 @@ export default function CustomerNotifications() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={{ username: customer.username }} onLogout={handleLogout}>
-        <NotificationBell
-          notifications={notifications}
-          unreadCount={unreadCount}
-          onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
-          notificationsPage="/customer/notifications"
-        />
+        <CustomerNotificationBell customerId={customer.id} />
       </Header>
       <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
@@ -72,12 +62,6 @@ export default function CustomerNotifications() {
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
             </p>
           </div>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <CheckCheck className="mr-2 h-4 w-4" />
-              Mark All Read
-            </Button>
-          )}
         </div>
 
         {loading ? (
@@ -91,34 +75,14 @@ export default function CustomerNotifications() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {notifications.map((n) => (
-              <Card
+              <NotificationItem
                 key={n.id}
-                className={`transition-colors ${n.status !== "read" ? "border-primary/30 bg-primary/5" : ""}`}
-              >
-                <CardContent className="py-4 flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={n.status !== "read" ? "default" : "secondary"} className="text-xs">
-                        {n.type.replace(/_/g, " ")}
-                      </Badge>
-                      {n.status !== "read" && (
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                      )}
-                    </div>
-                    <p className="text-sm">{n.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(n.created_at), "MMM dd, yyyy 'at' h:mm a")}
-                    </p>
-                  </div>
-                  {n.status !== "read" && (
-                    <Button variant="ghost" size="sm" onClick={() => markAsRead(n.id)}>
-                      Mark Read
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
+                notification={n}
+                senderName="Fine Gas Admin"
+                onMarkAsRead={markAsRead}
+              />
             ))}
           </div>
         )}

@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Input } from "./ui/input";
+
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -20,12 +20,7 @@ const ADMIN_EMAIL = "devmimi2@gmail.com";
 export function Footer() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devDialogOpen, setDevDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    contact: "",
-    email: "",
-    message: "",
-  });
+  const [contactMessage, setContactMessage] = useState("");
   const { toast } = useToast();
 
   const handleCall = () => {
@@ -43,35 +38,31 @@ export function Footer() {
   const handleSubmitNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!contactMessage.trim()) {
+      toast({ title: "Error", description: "Please enter a message", variant: "destructive" });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast({
-          title: "Error",
-          description: "Please log in to send a notification",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Please log in to send a notification", variant: "destructive" });
         return;
       }
 
-      // Get customer record
       const { data: customer } = await supabase
         .from("customers")
-        .select("id")
+        .select("id, shop_name, in_charge_name, phone, email")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (!customer) {
-        toast({
-          title: "Error",
-          description: "Customer profile not found. This feature is only available to customers.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Customer profile not found. This feature is only available to customers.", variant: "destructive" });
         return;
       }
 
-      const message = `Name: ${formData.name}\nContact: ${formData.contact}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`;
+      const message = `Name: ${customer.in_charge_name}\nShop: ${customer.shop_name}\nPhone: ${customer.phone}\nEmail: ${customer.email || "N/A"}\n\nMessage:\n${contactMessage}`;
 
       const { error } = await supabase.from("notifications").insert({
         customer_id: customer.id,
@@ -82,19 +73,11 @@ export function Footer() {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Your message has been sent to the admin",
-      });
-
+      toast({ title: "Success", description: "Your message has been sent to the admin" });
       setDialogOpen(false);
-      setFormData({ name: "", contact: "", email: "", message: "" });
+      setContactMessage("");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -159,52 +142,17 @@ export function Footer() {
           </DialogHeader>
           <form onSubmit={handleSubmitNotification} className="space-y-3 md:space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Your Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact">Phone Number</Label>
-              <Input
-                id="contact"
-                type="tel"
-                value={formData.contact}
-                onChange={(e) =>
-                  setFormData({ ...formData, contact: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="message">Message</Label>
               <Textarea
                 id="message"
-                value={formData.message}
-                onChange={(e) =>
-                  setFormData({ ...formData, message: e.target.value })
-                }
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Type your message here..."
                 required
-                rows={4}
+                rows={5}
               />
             </div>
+            <p className="text-xs text-muted-foreground">Your contact details will be attached automatically.</p>
             <Button type="submit" className="w-full">
               Send Message
             </Button>

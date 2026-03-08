@@ -76,7 +76,7 @@ export default function Contacts() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...profile, role: roleData.role });
     setLoading(false);

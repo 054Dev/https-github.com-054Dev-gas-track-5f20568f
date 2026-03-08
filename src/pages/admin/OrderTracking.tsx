@@ -116,7 +116,7 @@ export default function OrderTracking() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...profile, role: roleData.role, id: session.user.id });
     setLoading(false);

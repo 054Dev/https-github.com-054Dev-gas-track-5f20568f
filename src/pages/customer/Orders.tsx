@@ -94,7 +94,7 @@ export default function CustomerOrders() {
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
-      .single();
+      .maybeSingle();
 
     setUser({ ...profile, role: roleData.role });
     

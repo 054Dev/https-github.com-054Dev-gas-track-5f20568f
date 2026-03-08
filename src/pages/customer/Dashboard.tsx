@@ -182,7 +182,9 @@ export default function CustomerDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={{ username: customer.username }} onLogout={handleLogout} />
+      <Header user={{ username: customer.username }} onLogout={handleLogout}>
+        <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/customer/notifications" />
+      </Header>
       <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

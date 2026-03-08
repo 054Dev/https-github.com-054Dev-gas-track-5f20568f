@@ -89,8 +89,8 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify authentication
-    const { user, error: authError } = await verifyAuth(req, supabase);
-    if (authError || !user) {
+    const { userId, error: authError } = await verifyAuth(req, supabase);
+    if (authError || !userId) {
       return new Response(
         JSON.stringify({ error: authError || 'Unauthorized' }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Verify admin/staff role
-    const isAdmin = await verifyAdminRole(supabase, user.id);
+    const isAdmin = await verifyAdminRole(supabase, userId);
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Insufficient permissions' }),

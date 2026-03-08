@@ -29,6 +29,8 @@ import AdminOrderTracking from "./pages/admin/OrderTracking";
 import CustomerOrders from "./pages/customer/Orders";
 import CustomerPlaceOrder from "./pages/customer/PlaceOrder";
 import CustomerReceipts from "./pages/customer/Receipts";
+import CustomerNotifications from "./pages/customer/Notifications";
+import AdminNotifications from "./pages/admin/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -3,24 +3,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Helper function to verify authentication
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { user: null, error: 'Unauthorized: No authorization header' };
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'Unauthorized: No authorization header' };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const { data, error: authError } = await supabaseAdmin.auth.getClaims(token);
 
-  if (authError || !user) {
-    return { user: null, error: 'Unauthorized: Invalid token' };
+  if (authError || !data?.claims) {
+    return { userId: null, error: 'Unauthorized: Invalid token' };
   }
 
-  return { user };
+  return { userId: data.claims.sub };
 }
 
 // Helper function to verify admin/staff role
@@ -77,8 +77,8 @@ serve(async (req) => {
 
     if (action === "initialize-payment") {
       // Verify authentication
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -88,7 +88,7 @@ serve(async (req) => {
       const { customerId, amount, deliveryId, paymentMethod } = data;
 
       // Verify user has access to this customer
-      const { authorized } = await verifyCustomerAccess(supabaseAdmin, user.id, customerId);
+      const { authorized } = await verifyCustomerAccess(supabaseAdmin, userId, customerId);
       if (!authorized) {
         return new Response(
           JSON.stringify({ error: "Not authorized to initiate payment for this customer" }),
@@ -96,7 +96,7 @@ serve(async (req) => {
         );
       }
 
-      console.log("Initializing payment:", { customerId, amount, deliveryId, paymentMethod, userId: user.id });
+      console.log("Initializing payment:", { customerId, amount, deliveryId, paymentMethod, userId });
 
       const intasendApiKey = Deno.env.get("INTASEND_API_KEY");
       const intasendPublishableKey = Deno.env.get("INTASEND_PUBLISHABLE_KEY");
@@ -246,8 +246,8 @@ serve(async (req) => {
 
     if (action === "cash-payment") {
       // Verify authentication
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -255,7 +255,7 @@ serve(async (req) => {
       }
 
       // Verify admin/staff role for cash payments
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required to record cash payments" }),
@@ -273,7 +273,7 @@ serve(async (req) => {
         );
       }
 
-      console.log("Recording cash payment:", { customerId, amount, handledBy: user.id });
+      console.log("Recording cash payment:", { customerId, amount, handledBy: userId });
 
       // Get customer details first
       const { data: customer } = await supabaseAdmin
@@ -298,7 +298,7 @@ serve(async (req) => {
           method: "cash",
           payment_provider: "manual",
           payment_status: "completed",
-          handled_by: user.id, // Use authenticated user, not client-provided
+          handled_by: userId, // Use authenticated user, not client-provided
           reference: `CASH-${Date.now()}`,
         })
         .select()
@@ -359,8 +359,8 @@ serve(async (req) => {
     // has a credit balance and auto-bill against the new delivery.
     // ──────────────────────────────────────────────────────────────
     if (action === "overpayment-billing") {
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }

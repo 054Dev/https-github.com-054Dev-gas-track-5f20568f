@@ -3,24 +3,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.81.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Helper function to verify authentication and get user
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { user: null, error: 'Unauthorized: No authorization header' };
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'Unauthorized: No authorization header' };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const { data, error: authError } = await supabaseAdmin.auth.getClaims(token);
 
-  if (authError || !user) {
-    return { user: null, error: 'Unauthorized: Invalid token' };
+  if (authError || !data?.claims) {
+    return { userId: null, error: 'Unauthorized: Invalid token' };
   }
 
-  return { user };
+  return { userId: data.claims.sub };
 }
 
 // Helper function to verify admin role
@@ -47,8 +47,8 @@ serve(async (req) => {
     );
 
     // Verify authentication
-    const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-    if (authError) {
+    const { userId: authUserId, error: authError } = await verifyAuth(req, supabaseAdmin);
+    if (authError || !authUserId) {
       return new Response(
         JSON.stringify({ error: authError }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -59,7 +59,7 @@ serve(async (req) => {
 
     if (action === "get-user-email") {
       // Verify admin/co_admin role
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, authUserId);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required" }),
@@ -93,7 +93,7 @@ serve(async (req) => {
 
     if (action === "delete-user") {
       // Only admin can delete users
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id, ['admin']);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, authUserId, ['admin']);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required" }),
@@ -110,7 +110,7 @@ serve(async (req) => {
       }
 
       // Prevent self-deletion through this endpoint
-      if (userId === user.id) {
+      if (userId === authUserId) {
         return new Response(
           JSON.stringify({ error: "Cannot delete your own account through this endpoint" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

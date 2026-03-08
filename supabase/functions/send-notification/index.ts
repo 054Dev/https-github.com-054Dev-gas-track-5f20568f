@@ -7,7 +7,7 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface NotificationRequest {
@@ -18,20 +18,20 @@ interface NotificationRequest {
 }
 
 // Verify authentication from Authorization header
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { user: null, error: 'Missing authorization header' };
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'Missing authorization header' };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data, error } = await supabaseAdmin.auth.getClaims(token);
   
-  if (error || !user) {
-    return { user: null, error: 'Invalid or expired token' };
+  if (error || !data?.claims) {
+    return { userId: null, error: 'Invalid or expired token' };
   }
 
-  return { user };
+  return { userId: data.claims.sub };
 }
 
 // Verify user has admin/staff role
@@ -89,8 +89,8 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify authentication
-    const { user, error: authError } = await verifyAuth(req, supabase);
-    if (authError || !user) {
+    const { userId, error: authError } = await verifyAuth(req, supabase);
+    if (authError || !userId) {
       return new Response(
         JSON.stringify({ error: authError || 'Unauthorized' }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
@@ -98,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Verify admin/staff role
-    const isAdmin = await verifyAdminRole(supabase, user.id);
+    const isAdmin = await verifyAdminRole(supabase, userId);
     if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Insufficient permissions' }),

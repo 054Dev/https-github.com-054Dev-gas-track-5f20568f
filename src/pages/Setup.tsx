@@ -130,16 +130,13 @@ export default function Setup() {
     setLoading(true);
     try {
       // Verify OTP via secure edge function
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const otpResponse = await fetch(`${supabaseUrl}/functions/v1/verify-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, otp }),
+      const { data: otpResult, error: otpError } = await supabase.functions.invoke("verify-otp", {
+        body: { email, otp },
       });
 
-      const otpResult = await otpResponse.json();
+      if (otpError) {
+        throw new Error(otpError.message || "OTP verification failed");
+      }
       
       if (!otpResult.valid) {
         throw new Error(otpResult.error || "Invalid or expired OTP");

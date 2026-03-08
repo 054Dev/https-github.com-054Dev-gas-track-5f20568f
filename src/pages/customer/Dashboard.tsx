@@ -5,6 +5,8 @@ import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Receipt, DollarSign, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +41,7 @@ export default function CustomerDashboard() {
     return saved ? JSON.parse(saved) : [];
   });
   const [showHidden, setShowHidden] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ customerId: customer?.id });
 
   const toggleCardVisibility = (cardId: string) => {
     const newHidden = hiddenCards.includes(cardId)
@@ -179,7 +182,9 @@ export default function CustomerDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={{ username: customer.username }} onLogout={handleLogout} />
+      <Header user={{ username: customer.username }} onLogout={handleLogout}>
+        <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/customer/notifications" />
+      </Header>
       <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

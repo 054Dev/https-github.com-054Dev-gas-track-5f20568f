@@ -63,7 +63,7 @@ export default function CustomerOrders() {
   const [selectedPaymentDelivery, setSelectedPaymentDelivery] = useState<{id: string, amount: number} | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { notifications } = useNotifications(customerId || undefined);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ customerId: customerId || undefined });
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -191,7 +191,7 @@ export default function CustomerOrders() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout}>
-        <NotificationBell notifications={notifications} />
+        <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/customer/notifications" />
       </Header>
       <SubNav role={user.role} />
       <main className="container mx-auto p-6 flex-1">

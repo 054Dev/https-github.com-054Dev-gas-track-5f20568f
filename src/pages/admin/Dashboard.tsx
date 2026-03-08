@@ -10,6 +10,8 @@ import { Users, Package, DollarSign, AlertCircle, Eye, EyeOff, TrendingUp } from
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
 import { DebtsReportModal } from "@/components/DebtsReportModal";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -28,6 +30,7 @@ export default function AdminDashboard() {
   });
   const [showHidden, setShowHidden] = useState(false);
   const [debtsModalOpen, setDebtsModalOpen] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ isAdmin: true });
 
   const toggleCardVisibility = (cardId: string) => {
     const newHidden = hiddenCards.includes(cardId)
@@ -124,7 +127,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/admin/notifications" />
+      </Header>
       <SubNav role={user.role} />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

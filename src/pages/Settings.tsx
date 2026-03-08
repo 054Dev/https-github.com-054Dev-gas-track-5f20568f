@@ -43,9 +43,11 @@ export default function Settings() {
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
   const [showContactEditWarning, setShowContactEditWarning] = useState(false);
   const [pendingProfileUpdate, setPendingProfileUpdate] = useState<(() => Promise<void>) | null>(null);
+  const [newEmail, setNewEmail] = useState("");
+  const [showEmailChangeDialog, setShowEmailChangeDialog] = useState(false);
   // Track original values for change detection
   const [originalValues, setOriginalValues] = useState({
-    fullName: "", phone: "", shopName: "", address: "",
+    fullName: "", phone: "", shopName: "", address: "", username: "",
   });
   const { toast } = useToast();
   const navigate = useNavigate();

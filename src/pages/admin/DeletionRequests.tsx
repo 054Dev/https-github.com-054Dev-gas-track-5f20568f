@@ -424,7 +424,7 @@ export default function DeletionRequests() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

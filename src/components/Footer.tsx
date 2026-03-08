@@ -142,52 +142,17 @@ export function Footer() {
           </DialogHeader>
           <form onSubmit={handleSubmitNotification} className="space-y-3 md:space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Your Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact">Phone Number</Label>
-              <Input
-                id="contact"
-                type="tel"
-                value={formData.contact}
-                onChange={(e) =>
-                  setFormData({ ...formData, contact: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="message">Message</Label>
               <Textarea
                 id="message"
-                value={formData.message}
-                onChange={(e) =>
-                  setFormData({ ...formData, message: e.target.value })
-                }
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Type your message here..."
                 required
-                rows={4}
+                rows={5}
               />
             </div>
+            <p className="text-xs text-muted-foreground">Your contact details will be attached automatically.</p>
             <Button type="submit" className="w-full">
               Send Message
             </Button>

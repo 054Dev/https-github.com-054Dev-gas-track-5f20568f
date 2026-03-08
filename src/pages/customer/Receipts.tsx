@@ -331,7 +331,7 @@ export default function Receipts() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header user={user} onLogout={handleLogout}>
-        <CustomerNotificationBell customerId={customer?.id} />
+        <CustomerNotificationBell customerId={customerId} />
       </Header>
       <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">

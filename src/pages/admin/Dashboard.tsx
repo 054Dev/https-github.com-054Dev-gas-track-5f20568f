@@ -127,7 +127,9 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/admin/notifications" />
+      </Header>
       <SubNav role={user.role} />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

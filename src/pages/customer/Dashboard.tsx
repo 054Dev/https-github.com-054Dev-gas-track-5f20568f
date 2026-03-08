@@ -5,6 +5,8 @@ import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Receipt, DollarSign, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

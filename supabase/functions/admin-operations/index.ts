@@ -93,7 +93,7 @@ serve(async (req) => {
 
     if (action === "delete-user") {
       // Only admin can delete users
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id, ['admin']);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, authUserId, ['admin']);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required" }),

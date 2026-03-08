@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
 import { PasswordStrength } from "@/components/PasswordStrength";
+import { PasswordInput } from "@/components/PasswordInput";
 import { validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
 
 export default function Signup() {
@@ -30,24 +31,20 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      // Validate passwords match
       if (formData.password !== formData.confirmPassword) {
         throw new Error("Passwords do not match");
       }
 
-      // Validate email format
       const emailValidation = validateEmail(formData.email);
       if (!emailValidation.valid) {
         throw new Error(emailValidation.message);
       }
 
-      // Basic password validation for customers (no strength requirement)
       const { valid, message } = validateCustomerPasswordPolicy(formData.password);
       if (!valid) {
         throw new Error(message);
       }
 
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -64,7 +61,6 @@ export default function Signup() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Create customer role
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert({
@@ -74,7 +70,6 @@ export default function Signup() {
 
         if (roleError) throw roleError;
 
-        // Create profile record (used across admin UIs)
         const { error: profileError } = await supabase.from("profiles").insert({
           id: authData.user.id,
           username: formData.username,
@@ -84,7 +79,6 @@ export default function Signup() {
 
         if (profileError) throw profileError;
 
-        // Create customer record
         const { error: customerError } = await supabase
           .from("customers")
           .insert({
@@ -95,7 +89,7 @@ export default function Signup() {
             email: formData.email,
             phone: formData.phone,
             address: formData.address,
-            price_per_kg: 150, // Default price
+            price_per_kg: 150,
           });
 
         if (customerError) throw customerError;
@@ -204,9 +198,8 @@ export default function Signup() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">Password *</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -216,9 +209,8 @@ export default function Signup() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}

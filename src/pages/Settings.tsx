@@ -7,11 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordStrength } from "@/components/PasswordStrength";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Header } from "@/components/Header";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Trash2 } from "lucide-react";
+import { InfoIcon, Trash2, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,16 +29,24 @@ import { validateAdminPasswordPolicy, validateCustomerPasswordPolicy } from "@/l
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [shopName, setShopName] = useState("");
+  const [address, setAddress] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const [deletionReason, setDeletionReason] = useState("");
   const [showDeletionDialog, setShowDeletionDialog] = useState(false);
+  const [showContactEditWarning, setShowContactEditWarning] = useState(false);
+  const [pendingProfileUpdate, setPendingProfileUpdate] = useState<(() => Promise<void>) | null>(null);
+  // Track original values for change detection
+  const [originalValues, setOriginalValues] = useState({
+    fullName: "", phone: "", shopName: "", address: "",
+  });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -53,7 +62,6 @@ export default function Settings() {
         return;
       }
 
-      // Get user role
       const { data: roleData } = await supabase
         .from("user_roles")
         .select("role")
@@ -63,7 +71,6 @@ export default function Settings() {
       setUserRole(roleData?.role || null);
       setEmail(user.email || "");
 
-      // Get profile data
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -74,6 +81,36 @@ export default function Settings() {
         setFullName(profileData.full_name);
         setPhone(profileData.phone || "");
         setUsername(profileData.username);
+      }
+
+      // Load customer-specific data
+      const { data: customerData } = await supabase
+        .from("customers")
+        .select("id, shop_name, address, phone, in_charge_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (customerData) {
+        setCustomerId(customerData.id);
+        setShopName(customerData.shop_name || "");
+        setAddress(customerData.address || "");
+        // Use customer phone if profile phone is empty
+        if (!profileData?.phone && customerData.phone) {
+          setPhone(customerData.phone);
+        }
+        setOriginalValues({
+          fullName: profileData?.full_name || customerData.in_charge_name || "",
+          phone: profileData?.phone || customerData.phone || "",
+          shopName: customerData.shop_name || "",
+          address: customerData.address || "",
+        });
+      } else {
+        setOriginalValues({
+          fullName: profileData?.full_name || "",
+          phone: profileData?.phone || "",
+          shopName: "",
+          address: "",
+        });
       }
     } catch (error: any) {
       toast({
@@ -96,7 +133,6 @@ export default function Settings() {
       return;
     }
 
-    // Use stricter validation for admin/staff, basic for customers
     const isAdminOrStaff = userRole && ["admin", "co_admin", "staff"].includes(userRole);
     const { valid, message } = isAdminOrStaff 
       ? validateAdminPasswordPolicy(newPassword, { email, username, fullName, phone })
@@ -124,7 +160,6 @@ export default function Settings() {
         description: "Password updated successfully",
       });
 
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
@@ -138,15 +173,14 @@ export default function Settings() {
     }
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeProfileUpdate = async () => {
     setLoading(true);
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase
+      // Update profile
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
@@ -154,7 +188,55 @@ export default function Settings() {
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update customer record if exists
+      if (customerId) {
+        const { error: customerError } = await supabase
+          .from("customers")
+          .update({
+            in_charge_name: fullName,
+            phone: phone,
+            shop_name: shopName,
+            address: address,
+          })
+          .eq("id", customerId);
+
+        if (customerError) throw customerError;
+      }
+
+      // Detect what changed and send notification
+      const changes: string[] = [];
+      if (fullName !== originalValues.fullName) changes.push(`Name: "${originalValues.fullName}" → "${fullName}"`);
+      if (phone !== originalValues.phone) changes.push(`Phone: "${originalValues.phone}" → "${phone}"`);
+      if (shopName !== originalValues.shopName) changes.push(`Shop: "${originalValues.shopName}" → "${shopName}"`);
+      if (address !== originalValues.address) changes.push(`Address: "${originalValues.address}" → "${address}"`);
+
+      if (changes.length > 0 && customerId) {
+        const changeMsg = changes.join(", ");
+
+        // Notify admin if user is not admin
+        const isAdmin = userRole === "admin" || userRole === "co_admin";
+        if (!isAdmin) {
+          await supabase.from("notifications").insert({
+            customer_id: customerId,
+            type: "contact_request",
+            message: `${fullName || username} updated their contact details: ${changeMsg}`,
+            status: "pending",
+          });
+        }
+
+        // Notify the user themselves (confirmation)
+        await supabase.from("notifications").insert({
+          customer_id: customerId,
+          type: "order_created",
+          message: `Your contact details have been updated successfully: ${changeMsg}`,
+          status: "pending",
+        });
+      }
+
+      // Update original values
+      setOriginalValues({ fullName, phone, shopName, address });
 
       toast({
         title: "Success",
@@ -171,66 +253,59 @@ export default function Settings() {
     }
   };
 
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Check if contact details changed
+    const hasContactChanges =
+      phone !== originalValues.phone ||
+      fullName !== originalValues.fullName ||
+      shopName !== originalValues.shopName ||
+      address !== originalValues.address;
+
+    if (hasContactChanges) {
+      setPendingProfileUpdate(() => executeProfileUpdate);
+      setShowContactEditWarning(true);
+    } else {
+      await executeProfileUpdate();
+    }
+  };
+
   const handleAccountDeletion = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // If user is customer, create deletion request
-      if (userRole === 'customer') {
-        const { error: requestError } = await supabase
-          .from("deletion_requests")
-          .insert({
-            user_id: user.id,
-            reason: deletionReason,
-            status: 'pending'
-          });
-
-        if (requestError) throw requestError;
-
-        // Create notification for admins
-        const { data: customers } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-
-        if (customers) {
-          await supabase
-            .from("notifications")
-            .insert({
-              customer_id: customers.id,
-              type: 'account_deletion_request',
-              message: `Account deletion requested by ${fullName || username}. Reason: ${deletionReason || 'No reason provided'}`
-            });
-        }
-
-        toast({
-          title: "Request Submitted",
-          description: "Your account deletion request has been sent to administrators",
+      const { error: requestError } = await supabase
+        .from("deletion_requests")
+        .insert({
+          user_id: user.id,
+          reason: deletionReason || "Self-requested account deletion",
+          status: "pending",
         });
-        setShowDeletionDialog(false);
-        setDeletionReason("");
-      } else {
-        // Admin, co_admin, staff must also request deletion (for security)
-        const { error: requestError } = await supabase
-          .from("deletion_requests")
+
+      if (requestError) throw requestError;
+
+      // Create notification for admins
+      if (customerId) {
+        await supabase
+          .from("notifications")
           .insert({
-            user_id: user.id,
-            reason: deletionReason || 'Self-requested account deletion',
-            status: 'pending'
+            customer_id: customerId,
+            type: "account_deletion_request",
+            message: `Account deletion requested by ${fullName || username}. Reason: ${deletionReason || "No reason provided"}`,
           });
-
-        if (requestError) throw requestError;
-
-        toast({
-          title: "Request Submitted",
-          description: "Your account deletion request has been created. Another admin will need to approve it.",
-        });
-        setShowDeletionDialog(false);
-        setDeletionReason("");
       }
+
+      toast({
+        title: "Request Submitted",
+        description: userRole === "customer"
+          ? "Your account deletion request has been sent to administrators"
+          : "Your account deletion request has been created. Another admin will need to approve it.",
+      });
+      setShowDeletionDialog(false);
+      setDeletionReason("");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -241,6 +316,9 @@ export default function Settings() {
       setLoading(false);
     }
   };
+
+  const isAdmin = userRole === "admin" || userRole === "co_admin";
+  const isCustomer = userRole === "customer";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -260,57 +338,114 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileUpdate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
+
+                {isCustomer && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="shopName">Shop Name</Label>
+                      <Input
+                        id="shopName"
+                        value={shopName}
+                        onChange={(e) => setShopName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        id="address"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      disabled
+                    />
+                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      value={username}
+                      disabled
+                    />
+                    {!isAdmin && (
+                      <Alert>
+                        <InfoIcon className="h-4 w-4" />
+                        <AlertDescription>
+                          Username changes must be requested from an administrator.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    disabled
-                  />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    disabled
-                  />
-                  {userRole !== 'admin' && userRole !== 'co_admin' && (
-                    <Alert>
-                      <InfoIcon className="h-4 w-4" />
-                      <AlertDescription>
-                        Username changes must be requested from an administrator. 
-                        Please contact admin with your desired new username.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
+
                 <Button type="submit" disabled={loading}>
                   {loading ? "Updating..." : "Update Profile"}
                 </Button>
               </form>
             </CardContent>
           </Card>
+
+          {/* Contact Edit Warning Dialog */}
+          <AlertDialog open={showContactEditWarning} onOpenChange={setShowContactEditWarning}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  Confirm Contact Details Change
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  You are about to update your contact details. This change will be logged and{" "}
+                  {!isAdmin ? "administrators will be notified." : "recorded in the system."}
+                  {" "}Please ensure your new details are accurate.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    setShowContactEditWarning(false);
+                    if (pendingProfileUpdate) {
+                      await pendingProfileUpdate();
+                      setPendingProfileUpdate(null);
+                    }
+                  }}
+                >
+                  Confirm Changes
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Change Password */}
           <Card>
@@ -322,9 +457,8 @@ export default function Settings() {
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="newPassword">New Password</Label>
-                  <Input
+                  <PasswordInput
                     id="newPassword"
-                    type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -332,9 +466,8 @@ export default function Settings() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -348,56 +481,58 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Delete Account */}
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>
-                Request account deletion (requires admin approval)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AlertDialog open={showDeletionDialog} onOpenChange={setShowDeletionDialog}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    Request Account Deletion
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Request Account Deletion?</AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-4">
-                      <p>
-                        This will send a deletion request to the administrators. 
-                        Your account will remain active until an admin approves your request.
-                      </p>
-                      <div className="space-y-2">
-                        <Label htmlFor="reason">Reason for deletion (optional)</Label>
-                        <Textarea
-                          id="reason"
-                          placeholder="Why would you like to delete your account?"
-                          value={deletionReason}
-                          onChange={(e) => setDeletionReason(e.target.value)}
-                          rows={3}
-                        />
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleAccountDeletion}
-                      disabled={loading}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {loading ? "Processing..." : 'Submit Request'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </CardContent>
-          </Card>
+          {/* Delete Account - only for non-admin users */}
+          {!isAdmin && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                <CardDescription>
+                  Request account deletion (requires admin approval)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlertDialog open={showDeletionDialog} onOpenChange={setShowDeletionDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Request Account Deletion
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Request Account Deletion?</AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-4">
+                        <p>
+                          This will send a deletion request to the administrators.
+                          Your account will remain active until an admin approves your request.
+                        </p>
+                        <div className="space-y-2">
+                          <Label htmlFor="reason">Reason for deletion (optional)</Label>
+                          <Textarea
+                            id="reason"
+                            placeholder="Why would you like to delete your account?"
+                            value={deletionReason}
+                            onChange={(e) => setDeletionReason(e.target.value)}
+                            rows={3}
+                          />
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleAccountDeletion}
+                        disabled={loading}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {loading ? "Processing..." : "Submit Request"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
       <Footer />

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Header } from "@/components/Header";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -28,7 +29,6 @@ export default function Login() {
       if (error) throw error;
 
       if (data.user) {
-        // Check user role to redirect appropriately
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -38,7 +38,6 @@ export default function Login() {
         if (roleData?.role === "admin" || roleData?.role === "co_admin" || roleData?.role === "staff") {
           navigate("/admin/dashboard");
         } else {
-          // Check if customer profile exists
           const { data: customerData } = await supabase
             .from("customers")
             .select("id")
@@ -94,9 +93,8 @@ export default function Login() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

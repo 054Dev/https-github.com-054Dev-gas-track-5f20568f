@@ -59,7 +59,7 @@ serve(async (req) => {
 
     if (action === "get-user-email") {
       // Verify admin/co_admin role
-      const isAdmin = await verifyAdminRole(supabaseAdmin, user.id);
+      const isAdmin = await verifyAdminRole(supabaseAdmin, authUserId);
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Admin access required" }),

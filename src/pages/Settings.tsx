@@ -397,22 +397,33 @@ export default function Settings() {
                       value={email}
                       disabled
                     />
-                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    {isCustomer ? (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="px-0 h-auto text-xs"
+                        onClick={() => {
+                          setNewEmail(email);
+                          setShowEmailChangeDialog(true);
+                        }}
+                      >
+                        Change email address
+                      </Button>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
                       value={username}
-                      disabled
+                      onChange={(e) => setUsername(e.target.value)}
+                      disabled={isAdmin}
                     />
-                    {!isAdmin && (
-                      <Alert>
-                        <InfoIcon className="h-4 w-4" />
-                        <AlertDescription>
-                          Username changes must be requested from an administrator.
-                        </AlertDescription>
-                      </Alert>
+                    {isAdmin && (
+                      <p className="text-xs text-muted-foreground">Username cannot be changed here</p>
                     )}
                   </div>
                 </div>

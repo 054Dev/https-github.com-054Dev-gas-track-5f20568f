@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -18,6 +18,7 @@ interface NotificationBellProps {
   onMarkAsRead?: (id: string) => void;
   onMarkAllAsRead?: () => void;
   notificationsPage?: string;
+  showContactAdmin?: boolean;
 }
 
 export function NotificationBell({
@@ -26,9 +27,29 @@ export function NotificationBell({
   onMarkAsRead,
   onMarkAllAsRead,
   notificationsPage = "/customer/notifications",
+  showContactAdmin = false,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Sort latest first (defensive, in case data isn't pre-sorted)
+  const sorted = [...notifications].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const handleContactAdmin = () => {
+    setOpen(false);
+    // Scroll to footer and trigger the contact dialog
+    const footer = document.querySelector("footer");
+    if (footer) {
+      footer.scrollIntoView({ behavior: "smooth" });
+      // Click the Contact button in the footer
+      setTimeout(() => {
+        const contactBtn = footer.querySelector<HTMLButtonElement>("button:last-of-type");
+        contactBtn?.click();
+      }, 400);
+    }
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -58,13 +79,13 @@ export function NotificationBell({
             </div>
           </div>
           <ScrollArea className="h-[280px]">
-            {notifications.length === 0 ? (
+            {sorted.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 No notifications yet
               </div>
             ) : (
               <div className="space-y-2">
-                {notifications.slice(0, 8).map((notification) => (
+                {sorted.slice(0, 8).map((notification) => (
                   <div
                     key={notification.id}
                     className={`p-3 rounded-lg border transition-colors cursor-pointer ${
@@ -74,8 +95,8 @@ export function NotificationBell({
                     }`}
                     onClick={() => onMarkAsRead?.(notification.id)}
                   >
-                    <p className="text-sm">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm line-clamp-2">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground/50 mt-1">
                       {format(new Date(notification.created_at), "MMM dd, yyyy 'at' h:mm a")}
                     </p>
                   </div>
@@ -83,19 +104,32 @@ export function NotificationBell({
               </div>
             )}
           </ScrollArea>
-          {notifications.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                setOpen(false);
-                navigate(notificationsPage);
-              }}
-            >
-              View All Notifications
-            </Button>
-          )}
+          <div className="flex flex-col gap-2">
+            {showContactAdmin && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full gap-2"
+                onClick={handleContactAdmin}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Contact Admin
+              </Button>
+            )}
+            {sorted.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  setOpen(false);
+                  navigate(notificationsPage);
+                }}
+              >
+                View All Notifications
+              </Button>
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

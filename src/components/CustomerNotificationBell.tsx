@@ -15,6 +15,7 @@ export function CustomerNotificationBell({ customerId }: CustomerNotificationBel
       onMarkAsRead={markAsRead}
       onMarkAllAsRead={markAllAsRead}
       notificationsPage="/customer/notifications"
+      showContactAdmin
     />
   );
 }

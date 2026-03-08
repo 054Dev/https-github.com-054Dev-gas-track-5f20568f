@@ -44,13 +44,16 @@ function DropdownNotificationItem({
   const [isTruncated, setIsTruncated] = useState(false);
   const isUnread = notification.status !== "read";
 
-  // Detect if text is truncated (line-clamp)
+  // Detect if text is truncated (line-clamp) — delay to let popover animate in
   useEffect(() => {
-    if (!ref.current) return;
-    const el = ref.current.querySelector<HTMLParagraphElement>("[data-msg]");
-    if (el) {
-      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
-    }
+    const timer = setTimeout(() => {
+      if (!ref.current) return;
+      const el = ref.current.querySelector<HTMLParagraphElement>("[data-msg]");
+      if (el) {
+        setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [notification.message]);
 
   // Auto-mark as read if NOT truncated and unread

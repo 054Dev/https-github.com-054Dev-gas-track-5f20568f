@@ -289,9 +289,8 @@ export default function SubAdmins() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={newSubAdmin.password}
                 onChange={(e) =>
                   setNewSubAdmin({ ...newSubAdmin, password: e.target.value })

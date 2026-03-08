@@ -18,20 +18,20 @@ interface NotificationRequest {
 }
 
 // Verify authentication from Authorization header
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { user: null, error: 'Missing authorization header' };
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'Missing authorization header' };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data, error } = await supabaseAdmin.auth.getClaims(token);
   
-  if (error || !user) {
-    return { user: null, error: 'Invalid or expired token' };
+  if (error || !data?.claims) {
+    return { userId: null, error: 'Invalid or expired token' };
   }
 
-  return { user };
+  return { userId: data.claims.sub };
 }
 
 // Verify user has admin/staff role

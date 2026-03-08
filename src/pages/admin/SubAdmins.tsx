@@ -8,6 +8,7 @@ import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/PasswordInput";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Mail, Phone, Shield } from "lucide-react";
 import {

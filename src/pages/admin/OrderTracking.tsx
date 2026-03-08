@@ -506,7 +506,7 @@ export default function OrderTracking() {
           />
         )}
       </main>
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

@@ -339,7 +339,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
       </div>
-      <Footer />
+      <Footer role="admin" />
       <DebtsReportModal open={debtsModalOpen} onOpenChange={setDebtsModalOpen} />
     </div>
   );

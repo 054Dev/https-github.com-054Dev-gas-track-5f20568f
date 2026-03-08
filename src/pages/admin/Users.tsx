@@ -435,7 +435,7 @@ export default function Users() {
           ))}
         </div>
       </main>
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

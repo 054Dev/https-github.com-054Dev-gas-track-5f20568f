@@ -401,7 +401,7 @@ export default function CreateDelivery() {
           </>
         )}
       </main>
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

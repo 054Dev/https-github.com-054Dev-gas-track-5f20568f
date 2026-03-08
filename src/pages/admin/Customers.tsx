@@ -352,7 +352,7 @@ export default function AdminCustomers() {
           </div>
         )}
       </div>
-      <Footer />
+      <Footer role="admin" />
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

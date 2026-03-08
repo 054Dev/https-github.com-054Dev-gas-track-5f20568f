@@ -354,7 +354,7 @@ export default function CustomerDetail() {
         {/* Payment History - Import component */}
         <PaymentHistory customerId={customerId!} isAdmin={true} />
       </div>
-      <Footer />
+      <Footer role="admin" />
 
       {/* Edit Pricing Dialog */}
       <Dialog open={showPricingDialog} onOpenChange={setShowPricingDialog}>

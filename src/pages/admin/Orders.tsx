@@ -489,7 +489,7 @@ export default function Orders() {
           />
         )}
       </main>
-      <Footer />
+      <Footer role="admin" />
     </div>
   );
 }

@@ -24,7 +24,8 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Types that represent messages FROM customers TO admin
-  const CUSTOMER_TO_ADMIN_TYPES = ["contact_request"];
+  // Types that represent messages directed TO admin (from customers or system)
+  const CUSTOMER_TO_ADMIN_TYPES = ["contact_request", "new_customer", "new_order"];
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);

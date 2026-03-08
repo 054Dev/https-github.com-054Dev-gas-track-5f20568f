@@ -17,7 +17,12 @@ import { supabase } from "@/integrations/supabase/client";
 const ADMIN_PHONE = "+254702255315"; // Developer/admin contact
 const ADMIN_EMAIL = "devmimi2@gmail.com";
 
-export function Footer() {
+interface FooterProps {
+  role?: "admin" | "co_admin" | "staff" | "customer";
+}
+
+export function Footer({ role }: FooterProps) {
+  const isAdmin = role === "admin" || role === "co_admin" || role === "staff";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devDialogOpen, setDevDialogOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState("");

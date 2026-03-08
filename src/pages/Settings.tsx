@@ -189,6 +189,7 @@ export default function Settings() {
         .update({
           full_name: fullName,
           phone: phone,
+          username: username,
         })
         .eq("id", user.id);
 

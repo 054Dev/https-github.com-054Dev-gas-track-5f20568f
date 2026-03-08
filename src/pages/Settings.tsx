@@ -215,6 +215,7 @@ export default function Settings() {
       const changes: string[] = [];
       if (fullName !== originalValues.fullName) changes.push(`Name: "${originalValues.fullName}" → "${fullName}"`);
       if (phone !== originalValues.phone) changes.push(`Phone: "${originalValues.phone}" → "${phone}"`);
+      if (username !== originalValues.username) changes.push(`Username: "${originalValues.username}" → "${username}"`);
       if (shopName !== originalValues.shopName) changes.push(`Shop: "${originalValues.shopName}" → "${shopName}"`);
       if (address !== originalValues.address) changes.push(`Address: "${originalValues.address}" → "${address}"`);
 

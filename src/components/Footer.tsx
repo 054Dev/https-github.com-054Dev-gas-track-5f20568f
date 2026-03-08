@@ -38,35 +38,31 @@ export function Footer() {
   const handleSubmitNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!contactMessage.trim()) {
+      toast({ title: "Error", description: "Please enter a message", variant: "destructive" });
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        toast({
-          title: "Error",
-          description: "Please log in to send a notification",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Please log in to send a notification", variant: "destructive" });
         return;
       }
 
-      // Get customer record
       const { data: customer } = await supabase
         .from("customers")
-        .select("id")
+        .select("id, shop_name, in_charge_name, phone, email")
         .eq("user_id", user.id)
         .maybeSingle();
 
       if (!customer) {
-        toast({
-          title: "Error",
-          description: "Customer profile not found. This feature is only available to customers.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Customer profile not found. This feature is only available to customers.", variant: "destructive" });
         return;
       }
 
-      const message = `Name: ${formData.name}\nContact: ${formData.contact}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`;
+      const message = `Name: ${customer.in_charge_name}\nShop: ${customer.shop_name}\nPhone: ${customer.phone}\nEmail: ${customer.email || "N/A"}\n\nMessage:\n${contactMessage}`;
 
       const { error } = await supabase.from("notifications").insert({
         customer_id: customer.id,
@@ -77,19 +73,11 @@ export function Footer() {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Your message has been sent to the admin",
-      });
-
+      toast({ title: "Success", description: "Your message has been sent to the admin" });
       setDialogOpen(false);
-      setFormData({ name: "", contact: "", email: "", message: "" });
+      setContactMessage("");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 

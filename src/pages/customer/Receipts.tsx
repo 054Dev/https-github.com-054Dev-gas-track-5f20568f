@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { CustomerNotificationBell } from "@/components/CustomerNotificationBell";
 import { Footer } from "@/components/Footer";
 import { BackButton } from "@/components/BackButton";
 import { SubNav } from "@/components/SubNav";

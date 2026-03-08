@@ -220,7 +220,9 @@ export default function DeletionRequests() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <Header />
+        <Header>
+          <AdminNotificationBell />
+        </Header>
         <SubNav role={userRole} />
         <div className="flex-1 flex items-center justify-center">
           <p>Loading...</p>

@@ -359,8 +359,8 @@ serve(async (req) => {
     // has a credit balance and auto-bill against the new delivery.
     // ──────────────────────────────────────────────────────────────
     if (action === "overpayment-billing") {
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }

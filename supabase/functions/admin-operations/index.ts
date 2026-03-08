@@ -110,7 +110,7 @@ serve(async (req) => {
       }
 
       // Prevent self-deletion through this endpoint
-      if (userId === user.id) {
+      if (userId === authUserId) {
         return new Response(
           JSON.stringify({ error: "Cannot delete your own account through this endpoint" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

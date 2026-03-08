@@ -273,7 +273,7 @@ serve(async (req) => {
         );
       }
 
-      console.log("Recording cash payment:", { customerId, amount, handledBy: user.id });
+      console.log("Recording cash payment:", { customerId, amount, handledBy: userId });
 
       // Get customer details first
       const { data: customer } = await supabaseAdmin

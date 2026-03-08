@@ -41,6 +41,7 @@ export default function CustomerDashboard() {
     return saved ? JSON.parse(saved) : [];
   });
   const [showHidden, setShowHidden] = useState(false);
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ customerId: customer?.id });
 
   const toggleCardVisibility = (cardId: string) => {
     const newHidden = hiddenCards.includes(cardId)

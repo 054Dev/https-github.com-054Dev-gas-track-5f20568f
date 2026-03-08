@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Package, Receipt, DollarSign, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {

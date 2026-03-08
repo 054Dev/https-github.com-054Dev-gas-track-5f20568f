@@ -17,41 +17,10 @@ interface NotificationRequest {
   status: string;
 }
 
-// Verify authentication from Authorization header
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return { userId: null, error: 'Missing authorization header' };
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabaseAdmin.auth.getClaims(token);
-  
-  if (error || !data?.claims) {
-    return { userId: null, error: 'Invalid or expired token' };
-  }
-
-  return { userId: data.claims.sub };
-}
-
-// Verify user has admin/staff role
-async function verifyAdminRole(supabaseAdmin: any, userId: string): Promise<boolean> {
-  const { data: roleData } = await supabaseAdmin
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId)
-    .in('role', ['admin', 'co_admin', 'staff'])
-    .maybeSingle();
-
-  return !!roleData;
-}
-
 const sendSMS = async (phoneNumber: string, message: string) => {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
   const twilioPhone = Deno.env.get("TWILIO_PHONE_NUMBER");
-
-  console.log("Sending SMS");
 
   const response = await fetch(
     `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
@@ -71,8 +40,8 @@ const sendSMS = async (phoneNumber: string, message: string) => {
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("Twilio SMS error");
-    throw new Error(`Failed to send SMS`);
+    console.error("Twilio SMS error:", error);
+    throw new Error("Failed to send SMS");
   }
 
   return await response.json();
@@ -85,42 +54,54 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify authentication
-    const { userId, error: authError } = await verifyAuth(req, supabase);
-    if (authError || !userId) {
+    // Verify authentication using getUser
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: authError || 'Unauthorized' }),
+        JSON.stringify({ error: "Missing authorization header" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
     // Verify admin/staff role
-    const isAdmin = await verifyAdminRole(supabase, userId);
-    if (!isAdmin) {
+    const { data: roleData } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["admin", "co_admin", "staff"])
+      .maybeSingle();
+
+    if (!roleData) {
       return new Response(
-        JSON.stringify({ error: 'Forbidden: Insufficient permissions' }),
+        JSON.stringify({ error: "Forbidden: Insufficient permissions" }),
         { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const { customerId, message, type, status }: NotificationRequest =
-      await req.json();
+    const { customerId, message, type, status }: NotificationRequest = await req.json();
 
-    // Validate required fields
     if (!customerId || !message || !type || !status) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields' }),
+        JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("Sending notification for customer");
-
     // Get customer details
-    const { data: customer, error: customerError } = await supabase
+    const { data: customer, error: customerError } = await supabaseAdmin
       .from("customers")
       .select("email, phone, shop_name")
       .eq("id", customerId)
@@ -133,34 +114,36 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Customer found");
-
     // Send email notification
     if (customer.email) {
-      console.log("Sending email");
-      await resend.emails.send({
-        from: "Gas Delivery <onboarding@resend.dev>",
-        to: [customer.email],
-        subject: `Order Status Update - ${status}`,
-        html: `
-          <h2>Hello ${customer.shop_name}!</h2>
-          <p>${message}</p>
-          <p>Current Status: <strong>${status.replace("_", " ").toUpperCase()}</strong></p>
-          <p>Thank you for your business!</p>
-        `,
-      });
-      console.log("Email sent successfully");
+      try {
+        await resend.emails.send({
+          from: "Gas Delivery <onboarding@resend.dev>",
+          to: [customer.email],
+          subject: `Order Status Update - ${status}`,
+          html: `
+            <h2>Hello ${customer.shop_name}!</h2>
+            <p>${message}</p>
+            <p>Current Status: <strong>${status.replace("_", " ").toUpperCase()}</strong></p>
+            <p>Thank you for your business!</p>
+          `,
+        });
+      } catch (e) {
+        console.error("Email send failed:", e);
+      }
     }
 
     // Send SMS notification
     if (customer.phone) {
-      console.log("Sending SMS");
-      await sendSMS(customer.phone, `${customer.shop_name}: ${message}`);
-      console.log("SMS sent successfully");
+      try {
+        await sendSMS(customer.phone, `${customer.shop_name}: ${message}`);
+      } catch (e) {
+        console.error("SMS send failed:", e);
+      }
     }
 
     // Create notification record
-    const { error: notificationError } = await supabase
+    const { error: notificationError } = await supabaseAdmin
       .from("notifications")
       .insert({
         customer_id: customerId,
@@ -171,21 +154,16 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (notificationError) {
-      console.error("Error creating notification record");
+      console.error("Error creating notification record:", notificationError);
       throw notificationError;
     }
 
-    console.log("Notification record created");
-
     return new Response(
       JSON.stringify({ success: true, message: "Notifications sent" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
-    console.error("Error in send-notification function");
+    console.error("Error in send-notification function:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

@@ -63,7 +63,7 @@ export default function CustomerOrders() {
   const [selectedPaymentDelivery, setSelectedPaymentDelivery] = useState<{id: string, amount: number} | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { notifications } = useNotifications(customerId || undefined);
+  const { notifications } = useNotifications({ customerId: customerId || undefined });
   const isMobile = useIsMobile();
 
   useEffect(() => {

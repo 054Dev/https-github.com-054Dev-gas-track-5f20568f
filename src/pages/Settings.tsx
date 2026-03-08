@@ -204,6 +204,7 @@ export default function Settings() {
             phone: phone,
             shop_name: shopName,
             address: address,
+            username: username,
           })
           .eq("id", customerId);
 

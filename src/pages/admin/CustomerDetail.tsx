@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";

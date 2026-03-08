@@ -466,7 +466,75 @@ export default function Settings() {
             </AlertDialogContent>
           </AlertDialog>
 
-          {/* Change Password */}
+          {/* Email Change Dialog */}
+          <AlertDialog open={showEmailChangeDialog} onOpenChange={setShowEmailChangeDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Change Email Address
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  A confirmation email will be sent to the new address. Your email won't change until you verify it by clicking the link in that email.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-2 py-2">
+                <Label htmlFor="newEmail">New Email Address</Label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="Enter new email"
+                />
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    if (!newEmail || newEmail === email) {
+                      toast({ title: "Error", description: "Please enter a different email address", variant: "destructive" });
+                      return;
+                    }
+                    try {
+                      const { error } = await supabase.auth.updateUser({ email: newEmail });
+                      if (error) throw error;
+
+                      // Send notification about email change if customer
+                      if (customerId) {
+                        const changeMsg = `Email change requested: "${email}" → "${newEmail}"`;
+                        if (!isAdmin) {
+                          await supabase.from("notifications").insert({
+                            customer_id: customerId,
+                            type: "contact_request",
+                            message: `${fullName || username} requested an email change: ${changeMsg}`,
+                            status: "pending",
+                          });
+                        }
+                        await supabase.from("notifications").insert({
+                          customer_id: customerId,
+                          type: "order_created",
+                          message: `Email change requested. A confirmation link has been sent to ${newEmail}. Your email will update once verified.`,
+                          status: "pending",
+                        });
+                      }
+
+                      toast({
+                        title: "Verification Email Sent",
+                        description: `A confirmation email has been sent to ${newEmail}. Please check your inbox and click the verification link.`,
+                      });
+                      setShowEmailChangeDialog(false);
+                    } catch (error: any) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  Send Verification Email
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
           <Card>
             <CardHeader>
               <CardTitle>Change Password</CardTitle>

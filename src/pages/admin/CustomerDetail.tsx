@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { PaymentHistory } from "@/components/PaymentHistory";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
@@ -191,7 +192,9 @@ export default function CustomerDetail() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={user.role} />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

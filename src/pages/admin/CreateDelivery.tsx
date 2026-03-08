@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -241,7 +242,9 @@ export default function CreateDelivery() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={user.role} />
       <main className="container mx-auto p-6 flex-1">
         <div className="mb-6">

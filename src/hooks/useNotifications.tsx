@@ -23,6 +23,9 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Types that represent messages FROM customers TO admin
+  const CUSTOMER_TO_ADMIN_TYPES = ["contact_request"];
+
   const loadNotifications = useCallback(async () => {
     setLoading(true);
     let query = supabase
@@ -31,8 +34,14 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (!isAdmin && customerId) {
-      query = query.eq("customer_id", customerId);
+    if (isAdmin) {
+      // Admin only sees notifications sent BY customers (contact_request)
+      query = query.in("type", CUSTOMER_TO_ADMIN_TYPES);
+    } else if (customerId) {
+      // Customers only see notifications sent TO them (not their own contact_request)
+      query = query
+        .eq("customer_id", customerId)
+        .not("type", "in", `(${CUSTOMER_TO_ADMIN_TYPES.join(",")})`);
     }
 
     const { data } = await query;
@@ -92,6 +101,12 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
         },
         (payload) => {
           const newNotification = payload.new as Notification;
+          
+          // Filter realtime events by direction too
+          const isCustomerToAdmin = CUSTOMER_TO_ADMIN_TYPES.includes(newNotification.type);
+          if (isAdmin && !isCustomerToAdmin) return;
+          if (!isAdmin && isCustomerToAdmin) return;
+          
           setNotifications((prev) => [newNotification, ...prev]);
 
           if (audioRef.current) {

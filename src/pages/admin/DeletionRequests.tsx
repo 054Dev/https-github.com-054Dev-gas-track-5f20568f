@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { Footer } from "@/components/Footer";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { BackButton } from "@/components/BackButton";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -219,7 +220,9 @@ export default function DeletionRequests() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <Header />
+        <Header>
+          <AdminNotificationBell />
+        </Header>
         <SubNav role={userRole} />
         <div className="flex-1 flex items-center justify-center">
           <p>Loading...</p>
@@ -231,7 +234,9 @@ export default function DeletionRequests() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+      <Header>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={userRole} />
       
       <div className="container py-8 flex-1">

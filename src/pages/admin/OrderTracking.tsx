@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import {
   Card,
   CardContent,
@@ -216,7 +217,9 @@ export default function OrderTracking() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={user.role} />
       <main className="container mx-auto p-6 flex-1">
         <div className="mb-6">

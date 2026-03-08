@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
+import { CustomerNotificationBell } from "@/components/CustomerNotificationBell";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -212,7 +213,9 @@ export default function PlaceOrder() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={{ username: customer.username }} onLogout={handleLogout} />
+      <Header user={{ username: customer.username }} onLogout={handleLogout}>
+        <CustomerNotificationBell customerId={customer.id} />
+      </Header>
       <SubNav role="customer" />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

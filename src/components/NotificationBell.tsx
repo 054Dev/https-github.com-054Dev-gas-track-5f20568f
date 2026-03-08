@@ -80,14 +80,6 @@ function DropdownNotificationItem({
           : "bg-card hover:bg-accent"
       }`}
     >
-      <div className="flex items-center gap-2 mb-1">
-        {isUnread && (
-          <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
-        )}
-        <Badge variant="secondary" className="text-[10px] capitalize">
-          {notification.type.replace(/_/g, " ")}
-        </Badge>
-      </div>
       <p data-msg className="text-sm line-clamp-2">{notification.message}</p>
       <p className="text-xs text-muted-foreground/50 mt-1">
         {format(new Date(notification.created_at), "MMM dd, h:mm a")}

@@ -20,12 +20,7 @@ const ADMIN_EMAIL = "devmimi2@gmail.com";
 export function Footer() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devDialogOpen, setDevDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    contact: "",
-    email: "",
-    message: "",
-  });
+  const [contactMessage, setContactMessage] = useState("");
   const { toast } = useToast();
 
   const handleCall = () => {

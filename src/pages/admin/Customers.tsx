@@ -268,7 +268,9 @@ export default function AdminCustomers() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={user.role} />
       <div className="container py-4 md:py-8 px-4 md:px-6 flex-1">
         <div className="mb-4 md:mb-6">

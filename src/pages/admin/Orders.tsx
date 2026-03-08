@@ -290,7 +290,9 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header user={user} onLogout={handleLogout} />
+      <Header user={user} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={user.role} />
       <main className="container mx-auto p-4 md:p-6">
         <div className="mb-4 md:mb-6">

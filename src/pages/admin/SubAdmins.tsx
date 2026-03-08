@@ -181,7 +181,9 @@ export default function SubAdmins() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={{ username: user.email }} onLogout={handleLogout} />
+      <Header user={{ username: user.email }} onLogout={handleLogout}>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role="admin" />
       <div className="container py-8 flex-1">
         <div className="mb-6 flex items-center justify-between">

@@ -77,8 +77,8 @@ serve(async (req) => {
 
     if (action === "initialize-payment") {
       // Verify authentication
-      const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-      if (authError) {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
         return new Response(
           JSON.stringify({ error: authError }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -88,7 +88,7 @@ serve(async (req) => {
       const { customerId, amount, deliveryId, paymentMethod } = data;
 
       // Verify user has access to this customer
-      const { authorized } = await verifyCustomerAccess(supabaseAdmin, user.id, customerId);
+      const { authorized } = await verifyCustomerAccess(supabaseAdmin, userId, customerId);
       if (!authorized) {
         return new Response(
           JSON.stringify({ error: "Not authorized to initiate payment for this customer" }),
@@ -96,7 +96,7 @@ serve(async (req) => {
         );
       }
 
-      console.log("Initializing payment:", { customerId, amount, deliveryId, paymentMethod, userId: user.id });
+      console.log("Initializing payment:", { customerId, amount, deliveryId, paymentMethod, userId });
 
       const intasendApiKey = Deno.env.get("INTASEND_API_KEY");
       const intasendPublishableKey = Deno.env.get("INTASEND_PUBLISHABLE_KEY");

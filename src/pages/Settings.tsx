@@ -267,6 +267,7 @@ export default function Settings() {
     const hasContactChanges =
       phone !== originalValues.phone ||
       fullName !== originalValues.fullName ||
+      username !== originalValues.username ||
       shopName !== originalValues.shopName ||
       address !== originalValues.address;
 

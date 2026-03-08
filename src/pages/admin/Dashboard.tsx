@@ -10,6 +10,8 @@ import { Users, Package, DollarSign, AlertCircle, Eye, EyeOff, TrendingUp } from
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
 import { DebtsReportModal } from "@/components/DebtsReportModal";
+import { NotificationBell } from "@/components/NotificationBell";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();

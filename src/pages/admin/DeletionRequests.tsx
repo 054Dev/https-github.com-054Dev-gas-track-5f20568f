@@ -234,7 +234,9 @@ export default function DeletionRequests() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+      <Header>
+        <AdminNotificationBell />
+      </Header>
       <SubNav role={userRole} />
       
       <div className="container py-8 flex-1">

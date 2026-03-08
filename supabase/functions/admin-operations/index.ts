@@ -47,8 +47,8 @@ serve(async (req) => {
     );
 
     // Verify authentication
-    const { user, error: authError } = await verifyAuth(req, supabaseAdmin);
-    if (authError) {
+    const { userId: authUserId, error: authError } = await verifyAuth(req, supabaseAdmin);
+    if (authError || !authUserId) {
       return new Response(
         JSON.stringify({ error: authError }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }

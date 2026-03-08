@@ -7,20 +7,20 @@ const corsHeaders = {
 };
 
 // Helper function to verify authentication
-async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ user: any; error?: string }> {
+async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { user: null, error: 'Unauthorized: No authorization header' };
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { userId: null, error: 'Unauthorized: No authorization header' };
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const { data, error: authError } = await supabaseAdmin.auth.getClaims(token);
 
-  if (authError || !user) {
-    return { user: null, error: 'Unauthorized: Invalid token' };
+  if (authError || !data?.claims) {
+    return { userId: null, error: 'Unauthorized: Invalid token' };
   }
 
-  return { user };
+  return { userId: data.claims.sub };
 }
 
 // Helper function to verify admin/staff role

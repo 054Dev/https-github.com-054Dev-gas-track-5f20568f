@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp, DollarSign, Edit, Lock, FileText } from "lucide-react";
+import { Package, TrendingUp, DollarSign, Edit, Lock, FileText, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";

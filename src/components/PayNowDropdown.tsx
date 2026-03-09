@@ -12,6 +12,7 @@ import {
 import { CreditCard, ChevronDown, Package, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { PaymentModal } from "./PaymentModal";
+import { CashPaymentModal } from "./CashPaymentModal";
 import { useNavigate } from "react-router-dom";
 
 interface Delivery {

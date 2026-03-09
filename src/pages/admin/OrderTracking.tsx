@@ -103,9 +103,7 @@ export default function OrderTracking() {
   }, []);
 
   useEffect(() => {
-    if (dateRange) {
-      loadDeliveries();
-    }
+    loadDeliveries();
   }, [dateRange]);
 
   const checkAuth = async () => {

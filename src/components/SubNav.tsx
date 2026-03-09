@@ -24,14 +24,6 @@ export function SubNav({ role }: SubNavProps) {
         Dashboard
       </NavLink>
       <NavLink
-        to="/admin/orders"
-        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
-        activeClassName="bg-accent text-accent-foreground"
-      >
-        <Package className="inline-block mr-2 h-4 w-4" />
-        Orders
-      </NavLink>
-      <NavLink
         to="/admin/receipts-orders"
         className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
         activeClassName="bg-accent text-accent-foreground"

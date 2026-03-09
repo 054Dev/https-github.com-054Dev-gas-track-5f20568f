@@ -451,6 +451,17 @@ export default function CustomerOrders() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingNotesDelivery && (
+        <EditNotesDialog
+          open={editNotesOpen}
+          onOpenChange={setEditNotesOpen}
+          deliveryId={editingNotesDelivery.id}
+          currentNotes={editingNotesDelivery.notes || ""}
+          customerName="My Order"
+          onSuccess={() => loadDeliveries(customerId!)}
+        />
+      )}
     </div>
   );
 }

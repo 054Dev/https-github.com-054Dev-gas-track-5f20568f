@@ -64,24 +64,14 @@ export function SubNav({ role }: SubNavProps) {
         Users
       </NavLink>
       {role === "admin" && (
-        <>
-          <NavLink
-            to="/admin/sub-admins"
-            className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
-            activeClassName="bg-accent text-accent-foreground"
-          >
-            <Users className="inline-block mr-2 h-4 w-4" />
-            Sub-Admins
-          </NavLink>
-          <NavLink
-            to="/admin/deletion-requests"
-            className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
-            activeClassName="bg-accent text-accent-foreground"
-          >
-            <Trash2 className="inline-block mr-2 h-4 w-4" />
-            Deletion Requests
-          </NavLink>
-        </>
+        <NavLink
+          to="/admin/deletion-requests"
+          className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
+          activeClassName="bg-accent text-accent-foreground"
+        >
+          <Trash2 className="inline-block mr-2 h-4 w-4" />
+          Deletion Requests
+        </NavLink>
       )}
       <NavLink
         to="/admin/cylinder-management"

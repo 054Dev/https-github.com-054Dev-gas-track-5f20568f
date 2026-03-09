@@ -296,7 +296,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted-foreground">Track all customer orders</p>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate("/admin/order-tracking")} className="w-full" variant="outline">
+              <Button onClick={() => navigate("/admin/order-tracking")} className="w-full">
                 Track Orders
               </Button>
             </CardContent>

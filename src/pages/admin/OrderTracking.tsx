@@ -257,6 +257,15 @@ export default function OrderTracking() {
           </p>
         </div>
 
+        <div className="mb-6">
+          <ReceiptDateFilter
+            onFilterChange={(range, type) => {
+              setFilterType(type);
+              setDateRange(range);
+            }}
+          />
+        </div>
+
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Card>

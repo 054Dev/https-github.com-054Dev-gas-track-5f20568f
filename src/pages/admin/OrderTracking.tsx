@@ -83,6 +83,8 @@ export default function OrderTracking() {
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [editingNotesDelivery, setEditingNotesDelivery] = useState<Delivery | null>(null);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filterType, setFilterType] = useState<DateFilterType>("today");
   const navigate = useNavigate();

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp, DollarSign, Edit, Lock, FileText } from "lucide-react";
+import { Package, TrendingUp, DollarSign, Edit, Lock, FileText, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
+import { EditNotesDialog } from "@/components/EditNotesDialog";
 import { useDeliveryLockStatus } from "@/hooks/useDeliveryLockStatus";
 import {
   Tooltip,
@@ -82,6 +83,8 @@ export default function OrderTracking() {
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [editingNotesDelivery, setEditingNotesDelivery] = useState<Delivery | null>(null);
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
   const [filterType, setFilterType] = useState<DateFilterType>("today");
   const navigate = useNavigate();
@@ -237,6 +240,11 @@ export default function OrderTracking() {
     setEditPriceOpen(true);
   };
 
+  const handleEditNotes = (delivery: Delivery) => {
+    setEditingNotesDelivery(delivery);
+    setEditNotesOpen(true);
+  };
+
   if (loading || !user) return null;
 
   return (
@@ -361,12 +369,16 @@ export default function OrderTracking() {
                         </div>
                       </div>
 
-                      {delivery.notes && (
-                        <div className="bg-muted/50 p-2 rounded flex items-start gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-muted-foreground">{delivery.notes}</p>
-                        </div>
-                      )}
+                      <div
+                        className="bg-muted/50 p-2 rounded flex items-start gap-2 cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => handleEditNotes(delivery)}
+                      >
+                        <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-muted-foreground flex-1">
+                          {delivery.notes || "Add notes..."}
+                        </p>
+                        <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                      </div>
 
                       <div className="flex flex-col gap-2 pt-2">
                         <div className="flex justify-between items-center">
@@ -479,23 +491,16 @@ export default function OrderTracking() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {delivery.notes ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center gap-1 cursor-pointer max-w-[150px]">
-                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <span className="text-xs text-muted-foreground truncate">{delivery.notes}</span>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">{delivery.notes}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          <div
+                            className="flex items-center gap-1 cursor-pointer max-w-[150px] hover:bg-muted p-1 rounded transition-colors"
+                            onClick={() => handleEditNotes(delivery)}
+                          >
+                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground truncate">
+                              {delivery.notes || "Add notes..."}
+                            </span>
+                            <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Select
@@ -563,6 +568,17 @@ export default function OrderTracking() {
             onSuccess={loadDeliveries}
             isLocked={editLockStatus.isLocked}
             lockReason={editLockStatus.lockReason}
+          />
+        )}
+
+        {editingNotesDelivery && (
+          <EditNotesDialog
+            open={editNotesOpen}
+            onOpenChange={setEditNotesOpen}
+            deliveryId={editingNotesDelivery.id}
+            currentNotes={editingNotesDelivery.notes || ""}
+            customerName={editingNotesDelivery.customer.shop_name}
+            onSuccess={loadDeliveries}
           />
         )}
       </main>

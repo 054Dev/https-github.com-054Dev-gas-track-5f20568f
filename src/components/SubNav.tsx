@@ -55,14 +55,6 @@ export function SubNav({ role }: SubNavProps) {
         <Users className="inline-block mr-2 h-4 w-4" />
         Customers
       </NavLink>
-      <NavLink
-        to="/admin/users"
-        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
-        activeClassName="bg-accent text-accent-foreground"
-      >
-        <SettingsIcon className="inline-block mr-2 h-4 w-4" />
-        Users
-      </NavLink>
       {role === "admin" && (
         <NavLink
           to="/admin/deletion-requests"

@@ -235,10 +235,7 @@ export default function OrderTracking() {
     setEditPriceOpen(true);
   };
 
-  const handleEditNotes = (delivery: Delivery) => {
-    setEditingNotesDelivery(delivery);
-    setEditNotesOpen(true);
-  };
+
 
   if (loading || !user) return null;
 

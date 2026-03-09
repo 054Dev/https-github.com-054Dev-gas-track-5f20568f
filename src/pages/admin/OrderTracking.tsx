@@ -6,6 +6,7 @@ import { SubNav } from "@/components/SubNav";
 import { BackButton } from "@/components/BackButton";
 import { Footer } from "@/components/Footer";
 import { AdminNotificationBell } from "@/components/AdminNotificationBell";
+import { ReceiptDateFilter, type DateFilterType } from "@/components/ReceiptDateFilter";
 import {
   Card,
   CardContent,
@@ -81,6 +82,8 @@ export default function OrderTracking() {
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [filterType, setFilterType] = useState<DateFilterType>("today");
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -88,8 +91,22 @@ export default function OrderTracking() {
 
   useEffect(() => {
     checkAuth();
-    loadDeliveries();
   }, []);
+
+  // Set initial "today" filter on mount
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999);
+    setDateRange({ start: today, end });
+  }, []);
+
+  useEffect(() => {
+    if (dateRange) {
+      loadDeliveries();
+    }
+  }, [dateRange]);
 
   const checkAuth = async () => {
     const {
@@ -124,7 +141,7 @@ export default function OrderTracking() {
   };
 
   const loadDeliveries = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("deliveries")
       .select(
         `
@@ -145,8 +162,15 @@ export default function OrderTracking() {
         )
       `
       )
-      .order("delivery_date", { ascending: false })
-      .limit(100);
+      .order("delivery_date", { ascending: false });
+
+    if (dateRange) {
+      query = query
+        .gte("delivery_date", dateRange.start.toISOString())
+        .lte("delivery_date", dateRange.end.toISOString());
+    }
+
+    const { data, error } = await query.limit(100);
 
     if (error) {
       toast({
@@ -233,6 +257,15 @@ export default function OrderTracking() {
           </p>
         </div>
 
+        <div className="mb-6">
+          <ReceiptDateFilter
+            onFilterChange={(range, type) => {
+              setFilterType(type);
+              setDateRange(range);
+            }}
+          />
+        </div>
+
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Card>
@@ -242,7 +275,7 @@ export default function OrderTracking() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              <p className="text-xs text-muted-foreground">All-time orders</p>
+              <p className="text-xs text-muted-foreground">Filtered orders</p>
             </CardContent>
           </Card>
 

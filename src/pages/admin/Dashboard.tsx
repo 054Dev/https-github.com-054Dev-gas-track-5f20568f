@@ -256,28 +256,16 @@ export default function AdminDashboard() {
         <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Customer Management</CardTitle>
-              <p className="text-sm text-muted-foreground">View and manage all customers</p>
+              <CardTitle>Receipts & Sales</CardTitle>
+              <p className="text-sm text-muted-foreground">View sales and download receipts</p>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate("/admin/customers")} className="w-full">
-                View Customers
+              <Button onClick={() => navigate("/admin/receipts-orders")} className="w-full">
+                View Receipts
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-              <p className="text-sm text-muted-foreground">Manage admins, staff, and customers</p>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/admin/users")} className="w-full">
-                Manage Users
-              </Button>
-            </CardContent>
-          </Card>
-          
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle>Create Delivery</CardTitle>
@@ -298,6 +286,42 @@ export default function AdminDashboard() {
             <CardContent>
               <Button onClick={() => navigate("/admin/order-tracking")} className="w-full">
                 Track Orders
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Customer Management</CardTitle>
+              <p className="text-sm text-muted-foreground">View and manage all customers</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/customers")} className="w-full">
+                View Customers
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Cylinder Sizes</CardTitle>
+              <p className="text-sm text-muted-foreground">Manage cylinder capacities</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/cylinder-management")} className="w-full">
+                Manage Cylinders
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Notifications</CardTitle>
+              <p className="text-sm text-muted-foreground">View and send notifications</p>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/admin/notifications")} className="w-full">
+                View Notifications
               </Button>
             </CardContent>
           </Card>

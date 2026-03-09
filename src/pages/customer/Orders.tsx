@@ -62,6 +62,8 @@ export default function CustomerOrders() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentDelivery, setSelectedPaymentDelivery] = useState<{id: string, amount: number} | null>(null);
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [editingNotesDelivery, setEditingNotesDelivery] = useState<Delivery | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ customerId: customerId || undefined });

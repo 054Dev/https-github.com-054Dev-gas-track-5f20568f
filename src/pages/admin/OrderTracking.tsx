@@ -484,17 +484,10 @@ export default function OrderTracking() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div
-                            className="flex items-center gap-1 cursor-pointer max-w-[150px] hover:bg-muted p-1 rounded transition-colors"
-                            onClick={() => handleEditNotes(delivery)}
-                          >
-                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground truncate">
-                              {delivery.notes || "Add notes..."}
-                            </span>
-                            <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          </div>
+                        <TableCell className="max-w-[150px]">
+                          <span className="text-xs text-muted-foreground truncate block">
+                            {delivery.notes || "-"}
+                          </span>
                         </TableCell>
                         <TableCell>
                           <Select

@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
+import { EditNotesDialog } from "@/components/EditNotesDialog";
 import { useDeliveryLockStatus } from "@/hooks/useDeliveryLockStatus";
 import {
   Tooltip,

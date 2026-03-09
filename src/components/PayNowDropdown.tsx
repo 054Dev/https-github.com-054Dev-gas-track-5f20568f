@@ -12,6 +12,7 @@ import {
 import { CreditCard, ChevronDown, Package, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { PaymentModal } from "./PaymentModal";
+import { CashPaymentModal } from "./CashPaymentModal";
 import { useNavigate } from "react-router-dom";
 
 interface Delivery {
@@ -144,7 +145,19 @@ export function PayNowDropdown({ customerId, isAdmin = false, onPaymentSuccess }
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {selectedDelivery && (
+      {selectedDelivery && isAdmin ? (
+        <CashPaymentModal
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          customerId={customerId}
+          deliveryId={selectedDelivery.id}
+          onSuccess={() => {
+            loadUnpaidDeliveries();
+            setSelectedDelivery(null);
+            onPaymentSuccess?.();
+          }}
+        />
+      ) : selectedDelivery ? (
         <PaymentModal
           open={paymentModalOpen}
           onOpenChange={setPaymentModalOpen}
@@ -157,7 +170,7 @@ export function PayNowDropdown({ customerId, isAdmin = false, onPaymentSuccess }
             onPaymentSuccess?.();
           }}
         />
-      )}
+      ) : null}
     </>
   );
 }

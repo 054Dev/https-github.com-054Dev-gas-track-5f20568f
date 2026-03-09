@@ -275,7 +275,7 @@ export default function OrderTracking() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalOrders}</div>
-              <p className="text-xs text-muted-foreground">All-time orders</p>
+              <p className="text-xs text-muted-foreground">Filtered orders</p>
             </CardContent>
           </Card>
 

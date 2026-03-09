@@ -364,8 +364,16 @@ export default function CustomerOrders() {
                             {delivery.status === "en_route" ? "En Route" : delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {delivery.notes || "-"}
+                        <TableCell className="max-w-xs">
+                          <div
+                            className="flex items-center gap-1 cursor-pointer hover:bg-muted p-1 rounded transition-colors"
+                            onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                          >
+                            <span className="text-xs text-muted-foreground truncate">
+                              {delivery.notes || "Add note..."}
+                            </span>
+                            <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

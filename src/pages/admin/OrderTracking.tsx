@@ -398,6 +398,7 @@ export default function OrderTracking() {
                       <TableHead>Items</TableHead>
                       <TableHead className="text-right">Weight (kg)</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>

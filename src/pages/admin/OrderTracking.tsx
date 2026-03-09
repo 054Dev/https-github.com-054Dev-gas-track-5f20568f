@@ -502,7 +502,6 @@ export default function OrderTracking() {
                             <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                           </div>
                         </TableCell>
-                        </TableCell>
                         <TableCell>
                           <Select
                             value={delivery.status}

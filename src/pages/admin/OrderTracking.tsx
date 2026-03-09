@@ -558,16 +558,8 @@ export default function OrderTracking() {
           />
         )}
 
-        {editingNotesDelivery && (
-          <EditNotesDialog
-            open={editNotesOpen}
-            onOpenChange={setEditNotesOpen}
-            deliveryId={editingNotesDelivery.id}
-            currentNotes={editingNotesDelivery.notes || ""}
-            customerName={editingNotesDelivery.customer.shop_name}
-            onSuccess={loadDeliveries}
-          />
-        )}
+
+
       </main>
       <Footer role="admin" />
     </div>

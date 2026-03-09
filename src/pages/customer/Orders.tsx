@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PaymentModal } from "@/components/PaymentModal";
 import { PaymentHistory } from "@/components/PaymentHistory";
+import { EditNotesDialog } from "@/components/EditNotesDialog";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   Card,

@@ -263,10 +263,25 @@ export default function CustomerOrders() {
                         )}
                       </div>
 
-                      {delivery.notes && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          Note: {delivery.notes}
-                        </p>
+                      {delivery.notes ? (
+                        <div
+                          className="bg-muted/50 p-2 rounded flex items-start gap-2 cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                        >
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground flex-1 truncate">
+                            {delivery.notes}
+                          </p>
+                          <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        </div>
+                      ) : (
+                        <button
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                          onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                        >
+                          <FileText className="h-3 w-3" />
+                          Add a note...
+                        </button>
                       )}
 
                       <div className="flex gap-2 pt-2">

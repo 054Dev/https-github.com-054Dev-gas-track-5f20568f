@@ -169,46 +169,32 @@ export default function ReceiptsAndOrders() {
   const loadData = async () => {
     setIsLoadingData(true);
     try {
+      let paymentsQuery = supabase
+        .from("payments")
+        .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+        .order("paid_at", { ascending: false });
+
+      let deliveriesQuery = supabase
+        .from("deliveries")
+        .select("*, customers(shop_name, in_charge_name)")
+        .order("delivery_date", { ascending: false });
+
       if (dateRange) {
-        const { data: paymentsData } = await supabase
-          .from("payments")
-          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
+        paymentsQuery = paymentsQuery
           .gte("paid_at", dateRange.start.toISOString())
-          .lte("paid_at", dateRange.end.toISOString())
-          .order("paid_at", { ascending: false });
-
-        const { data: deliveriesData } = await supabase
-          .from("deliveries")
-          .select("*, customers(shop_name, in_charge_name)")
+          .lte("paid_at", dateRange.end.toISOString());
+        deliveriesQuery = deliveriesQuery
           .gte("delivery_date", dateRange.start.toISOString())
-          .lte("delivery_date", dateRange.end.toISOString())
-          .order("delivery_date", { ascending: false });
-
-        setPayments(paymentsData || []);
-        setDeliveries(deliveriesData || []);
-      } else {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(today);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const { data: paymentsData } = await supabase
-          .from("payments")
-          .select("*, customers(shop_name, in_charge_name, arrears_balance)")
-          .gte("paid_at", today.toISOString())
-          .lte("paid_at", endOfDay.toISOString())
-          .order("paid_at", { ascending: false });
-
-        const { data: deliveriesData } = await supabase
-          .from("deliveries")
-          .select("*, customers(shop_name, in_charge_name)")
-          .gte("delivery_date", today.toISOString())
-          .lte("delivery_date", endOfDay.toISOString())
-          .order("delivery_date", { ascending: false });
-
-        setPayments(paymentsData || []);
-        setDeliveries(deliveriesData || []);
+          .lte("delivery_date", dateRange.end.toISOString());
       }
+
+      const [{ data: paymentsData }, { data: deliveriesData }] = await Promise.all([
+        paymentsQuery,
+        deliveriesQuery,
+      ]);
+
+      setPayments(paymentsData || []);
+      setDeliveries(deliveriesData || []);
     } finally {
       setIsLoadingData(false);
     }

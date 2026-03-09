@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PaymentModal } from "@/components/PaymentModal";
 import { PaymentHistory } from "@/components/PaymentHistory";
+import { EditNotesDialog } from "@/components/EditNotesDialog";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   Card,
@@ -24,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package, Trash2 } from "lucide-react";
+import { Package, Trash2, Edit, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,8 @@ export default function CustomerOrders() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPaymentDelivery, setSelectedPaymentDelivery] = useState<{id: string, amount: number} | null>(null);
+  const [editNotesOpen, setEditNotesOpen] = useState(false);
+  const [editingNotesDelivery, setEditingNotesDelivery] = useState<Delivery | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications({ customerId: customerId || undefined });
@@ -260,10 +263,25 @@ export default function CustomerOrders() {
                         )}
                       </div>
 
-                      {delivery.notes && (
-                        <p className="text-xs text-muted-foreground truncate">
-                          Note: {delivery.notes}
-                        </p>
+                      {delivery.notes ? (
+                        <div
+                          className="bg-muted/50 p-2 rounded flex items-start gap-2 cursor-pointer hover:bg-muted transition-colors"
+                          onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                        >
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground flex-1 truncate">
+                            {delivery.notes}
+                          </p>
+                          <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        </div>
+                      ) : (
+                        <button
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                          onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                        >
+                          <FileText className="h-3 w-3" />
+                          Add a note...
+                        </button>
                       )}
 
                       <div className="flex gap-2 pt-2">
@@ -346,8 +364,16 @@ export default function CustomerOrders() {
                             {delivery.status === "en_route" ? "En Route" : delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-xs truncate">
-                          {delivery.notes || "-"}
+                        <TableCell className="max-w-xs">
+                          <div
+                            className="flex items-center gap-1 cursor-pointer hover:bg-muted p-1 rounded transition-colors"
+                            onClick={() => { setEditingNotesDelivery(delivery); setEditNotesOpen(true); }}
+                          >
+                            <span className="text-xs text-muted-foreground truncate">
+                              {delivery.notes || "Add note..."}
+                            </span>
+                            <Edit className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -425,6 +451,17 @@ export default function CustomerOrders() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {editingNotesDelivery && (
+        <EditNotesDialog
+          open={editNotesOpen}
+          onOpenChange={setEditNotesOpen}
+          deliveryId={editingNotesDelivery.id}
+          currentNotes={editingNotesDelivery.notes || ""}
+          customerName="My Order"
+          onSuccess={() => loadDeliveries(customerId!)}
+        />
+      )}
     </div>
   );
 }

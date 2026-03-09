@@ -82,6 +82,8 @@ export default function OrderTracking() {
   const [editPriceOpen, setEditPriceOpen] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [filterType, setFilterType] = useState<DateFilterType>("today");
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -89,8 +91,22 @@ export default function OrderTracking() {
 
   useEffect(() => {
     checkAuth();
-    loadDeliveries();
   }, []);
+
+  // Set initial "today" filter on mount
+  useEffect(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999);
+    setDateRange({ start: today, end });
+  }, []);
+
+  useEffect(() => {
+    if (dateRange) {
+      loadDeliveries();
+    }
+  }, [dateRange]);
 
   const checkAuth = async () => {
     const {

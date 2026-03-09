@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp, DollarSign, Edit, Lock } from "lucide-react";
+import { Package, TrendingUp, DollarSign, Edit, Lock, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -328,6 +328,13 @@ export default function OrderTracking() {
                         </div>
                       </div>
 
+                      {delivery.notes && (
+                        <div className="bg-muted/50 p-2 rounded flex items-start gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground">{delivery.notes}</p>
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-2 pt-2">
                         <div className="flex justify-between items-center">
                           <div>
@@ -391,6 +398,7 @@ export default function OrderTracking() {
                       <TableHead>Items</TableHead>
                       <TableHead className="text-right">Weight (kg)</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Notes</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -436,6 +444,25 @@ export default function OrderTracking() {
                               </p>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {delivery.notes ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="flex items-center gap-1 cursor-pointer max-w-[150px]">
+                                    <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <span className="text-xs text-muted-foreground truncate">{delivery.notes}</span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">{delivery.notes}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Select

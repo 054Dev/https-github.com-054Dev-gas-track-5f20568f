@@ -280,42 +280,6 @@ export default function AdminDashboard() {
           
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <CardTitle>Services & Pricing</CardTitle>
-              <p className="text-sm text-muted-foreground">Manage gas services and rates</p>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/admin/services")} className="w-full">
-                Manage Services
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>Admin Contacts</CardTitle>
-              <p className="text-sm text-muted-foreground">View and manage admin contacts</p>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/admin/contacts")} className="w-full">
-                View Contacts
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>Orders</CardTitle>
-              <p className="text-sm text-muted-foreground">View and manage all orders</p>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={() => navigate("/admin/orders")} className="w-full">
-                View Orders
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
               <CardTitle>Create Delivery</CardTitle>
               <p className="text-sm text-muted-foreground">Record new delivery for customers</p>
             </CardHeader>
@@ -332,7 +296,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-muted-foreground">Track all customer orders</p>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => navigate("/admin/order-tracking")} className="w-full" variant="outline">
+              <Button onClick={() => navigate("/admin/order-tracking")} className="w-full">
                 Track Orders
               </Button>
             </CardContent>

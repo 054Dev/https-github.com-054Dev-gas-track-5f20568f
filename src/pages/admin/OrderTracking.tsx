@@ -141,7 +141,7 @@ export default function OrderTracking() {
   };
 
   const loadDeliveries = async () => {
-    const { data, error } = await supabase
+    let query = supabase
       .from("deliveries")
       .select(
         `
@@ -162,8 +162,15 @@ export default function OrderTracking() {
         )
       `
       )
-      .order("delivery_date", { ascending: false })
-      .limit(100);
+      .order("delivery_date", { ascending: false });
+
+    if (dateRange) {
+      query = query
+        .gte("delivery_date", dateRange.start.toISOString())
+        .lte("delivery_date", dateRange.end.toISOString());
+    }
+
+    const { data, error } = await query.limit(100);
 
     if (error) {
       toast({

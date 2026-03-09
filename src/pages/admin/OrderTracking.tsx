@@ -328,6 +328,13 @@ export default function OrderTracking() {
                         </div>
                       </div>
 
+                      {delivery.notes && (
+                        <div className="bg-muted/50 p-2 rounded flex items-start gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <p className="text-xs text-muted-foreground">{delivery.notes}</p>
+                        </div>
+                      )}
+
                       <div className="flex flex-col gap-2 pt-2">
                         <div className="flex justify-between items-center">
                           <div>

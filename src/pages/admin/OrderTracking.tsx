@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Package, TrendingUp, DollarSign, Edit, Lock, FileText } from "lucide-react";
+import { Package, TrendingUp, DollarSign, Edit, Lock, FileText-react";
 import { format } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,7 @@ import {
 } from "@/components/ui/select";
 import { CashPaymentModal } from "@/components/CashPaymentModal";
 import { EditOrderPriceDialog } from "@/components/EditOrderPriceDialog";
-import { EditNotesDialog } from "@/components/EditNotesDialog";
-import { useDeliveryLockStatus } from "@/hooks/useDeliveryLockStatus";
+import { EditNoliveryLockStatus } from "@/hooks/useDeliveryLockStatus";
 import {
   Tooltip,
   TooltipContent,

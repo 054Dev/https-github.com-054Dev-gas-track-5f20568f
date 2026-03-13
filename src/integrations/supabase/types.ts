@@ -256,6 +256,45 @@ export type Database = {
         }
         Relationships: []
       }
+      error_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+          source: string | null
+          stack_trace: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          source?: string | null
+          stack_trace?: string | null
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          source?: string | null
+          stack_trace?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null

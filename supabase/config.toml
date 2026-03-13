@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-otp]
 verify_jwt = false
+
+[functions.dev-tools]
+verify_jwt = false

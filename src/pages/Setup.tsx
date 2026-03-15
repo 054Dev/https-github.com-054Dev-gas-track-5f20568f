@@ -272,7 +272,7 @@ function DatabaseTools({ pin }: { pin: string }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>⚠️ Clear ENTIRE Database?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete ALL data from ALL tables. Create a backup first! This action cannot be undone.
+                  This will delete ALL data from ALL tables. An automatic backup will be created first so you can restore later.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

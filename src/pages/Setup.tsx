@@ -184,6 +184,9 @@ function DatabaseTools({ pin }: { pin: string }) {
     }
   };
 
+  const [showRecoveryHub, setShowRecoveryHub] = useState(false);
+  const [recoveryBackups, setRecoveryBackups] = useState<any[]>([]);
+
   const clearAll = async () => {
     setClearing(true);
     try {
@@ -191,12 +194,31 @@ function DatabaseTools({ pin }: { pin: string }) {
         body: { action: "clear_all", pin },
       });
       if (error) throw error;
-      toast({ title: "Database Cleared", description: `${data?.results?.length} tables processed` });
+      toast({ title: "Database Cleared", description: `${data?.results?.length} tables processed. Auto-backup was created.` });
       setTableData([]);
+      // Load backups and show recovery hub
+      const { data: backupData } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "list_backups", pin },
+      });
+      setRecoveryBackups(backupData?.data || []);
+      setShowRecoveryHub(true);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setClearing(false);
+    }
+  };
+
+  const restoreFromRecovery = async (backupId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "restore_backup", pin, backup_id: backupId },
+      });
+      if (error) throw error;
+      toast({ title: "Backup Restored", description: `${data?.results?.length} tables restored.` });
+      setShowRecoveryHub(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 

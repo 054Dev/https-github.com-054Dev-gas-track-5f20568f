@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone, Truck, PackagePlus, Trash2, Menu, X, Receipt, Bell } from "lucide-react";
+import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone, Truck, PackagePlus, Trash2, Menu, X, Receipt, Bell, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 

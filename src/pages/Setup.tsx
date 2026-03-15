@@ -184,6 +184,9 @@ function DatabaseTools({ pin }: { pin: string }) {
     }
   };
 
+  const [showRecoveryHub, setShowRecoveryHub] = useState(false);
+  const [recoveryBackups, setRecoveryBackups] = useState<any[]>([]);
+
   const clearAll = async () => {
     setClearing(true);
     try {
@@ -191,12 +194,31 @@ function DatabaseTools({ pin }: { pin: string }) {
         body: { action: "clear_all", pin },
       });
       if (error) throw error;
-      toast({ title: "Database Cleared", description: `${data?.results?.length} tables processed` });
+      toast({ title: "Database Cleared", description: `${data?.results?.length} tables processed. Auto-backup was created.` });
       setTableData([]);
+      // Load backups and show recovery hub
+      const { data: backupData } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "list_backups", pin },
+      });
+      setRecoveryBackups(backupData?.data || []);
+      setShowRecoveryHub(true);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setClearing(false);
+    }
+  };
+
+  const restoreFromRecovery = async (backupId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "restore_backup", pin, backup_id: backupId },
+      });
+      if (error) throw error;
+      toast({ title: "Backup Restored", description: `${data?.results?.length} tables restored.` });
+      setShowRecoveryHub(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
 
@@ -250,7 +272,7 @@ function DatabaseTools({ pin }: { pin: string }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>⚠️ Clear ENTIRE Database?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete ALL data from ALL tables. Create a backup first! This action cannot be undone.
+                  This will delete ALL data from ALL tables. An automatic backup will be created first so you can restore later.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -301,6 +323,59 @@ function DatabaseTools({ pin }: { pin: string }) {
                 </table>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recovery Hub - shown after database clear */}
+      {showRecoveryHub && (
+        <Card className="border-2 border-primary/50 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <AlertTriangle className="h-5 w-5 text-primary" />
+              System Recovery Hub
+            </CardTitle>
+            <CardDescription>
+              The database has been cleared. An automatic backup was created before clearing. Choose how to proceed:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Card className="cursor-pointer hover:shadow-md transition-shadow border-primary/30" onClick={() => window.location.href = "/setup"}>
+                <CardContent className="p-4 text-center">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="font-semibold text-sm">Re-initialize System</p>
+                  <p className="text-xs text-muted-foreground mt-1">Start fresh — set up admin account and configure from scratch</p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/30">
+                <CardContent className="p-4 text-center">
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-primary" />
+                  <p className="font-semibold text-sm mb-2">Restore from Backup</p>
+                  <p className="text-xs text-muted-foreground mb-3">Select a backup to restore all data</p>
+                  {recoveryBackups.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No backups available</p>
+                  ) : (
+                    <div className="space-y-1 max-h-40 overflow-auto text-left">
+                      {recoveryBackups.slice(0, 5).map((b: any) => (
+                        <div key={b.id} className="flex items-center justify-between p-2 rounded bg-muted/50 hover:bg-muted">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium truncate">{b.label || "Unnamed"}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleString()}</p>
+                          </div>
+                          <Button size="sm" variant="outline" className="ml-2 shrink-0" onClick={() => restoreFromRecovery(b.id)}>
+                            Restore
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setShowRecoveryHub(false)} className="w-full">
+              Dismiss
+            </Button>
           </CardContent>
         </Card>
       )}

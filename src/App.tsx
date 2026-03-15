@@ -31,6 +31,7 @@ import CustomerPlaceOrder from "./pages/customer/PlaceOrder";
 import CustomerReceipts from "./pages/customer/Receipts";
 import CustomerNotifications from "./pages/customer/Notifications";
 import AdminNotifications from "./pages/admin/Notifications";
+import AdminBackups from "./pages/admin/Backups";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/customer/receipts" element={<CustomerReceipts />} />
             <Route path="/customer/notifications" element={<CustomerNotifications />} />
             <Route path="/admin/notifications" element={<AdminNotifications />} />
+            <Route path="/admin/backups" element={<AdminBackups />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

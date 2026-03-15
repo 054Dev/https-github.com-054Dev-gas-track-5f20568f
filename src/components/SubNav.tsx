@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
-import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone, Truck, PackagePlus, Trash2, Menu, X, Receipt, Bell } from "lucide-react";
+import { Package, Users, Settings as SettingsIcon, LayoutDashboard, Phone, Truck, PackagePlus, Trash2, Menu, X, Receipt, Bell, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
@@ -72,6 +72,14 @@ export function SubNav({ role }: SubNavProps) {
       >
         <Package className="inline-block mr-2 h-4 w-4" />
         Cylinder Sizes
+      </NavLink>
+      <NavLink
+        to="/admin/backups"
+        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
+        activeClassName="bg-accent text-accent-foreground"
+      >
+        <Shield className="inline-block mr-2 h-4 w-4" />
+        Backups
       </NavLink>
       <NavLink
         to="/admin/notifications"

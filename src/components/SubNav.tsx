@@ -74,6 +74,14 @@ export function SubNav({ role }: SubNavProps) {
         Cylinder Sizes
       </NavLink>
       <NavLink
+        to="/admin/backups"
+        className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
+        activeClassName="bg-accent text-accent-foreground"
+      >
+        <Shield className="inline-block mr-2 h-4 w-4" />
+        Backups
+      </NavLink>
+      <NavLink
         to="/admin/notifications"
         className="px-4 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent flex items-center"
         activeClassName="bg-accent text-accent-foreground"

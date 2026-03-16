@@ -12,6 +12,7 @@ import { Footer } from "@/components/Footer";
 import { DebtsReportModal } from "@/components/DebtsReportModal";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useNotifications } from "@/hooks/useNotifications";
+import { SystemHealthCard } from "@/components/SystemHealthCard";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();

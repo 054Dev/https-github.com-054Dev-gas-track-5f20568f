@@ -12,6 +12,7 @@ import { Footer } from "@/components/Footer";
 import { DebtsReportModal } from "@/components/DebtsReportModal";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useNotifications } from "@/hooks/useNotifications";
+import { SystemHealthCard } from "@/components/SystemHealthCard";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -251,6 +252,10 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+        </div>
+
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <SystemHealthCard />
         </div>
 
         <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

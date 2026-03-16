@@ -254,6 +254,10 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <SystemHealthCard />
+        </div>
+
         <div className="mt-6 md:mt-8 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>

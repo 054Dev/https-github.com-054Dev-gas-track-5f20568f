@@ -15,8 +15,9 @@ const SAFE_TABLES = [
   ...BACKUP_TABLES, "error_logs", "dev_db_snapshots", "deletion_requests"
 ];
 
+// NEVER include dev_db_snapshots here — backups must survive clears
 const CLEAR_ORDER = [
-  "error_logs", "dev_db_snapshots", "receipts", "notifications",
+  "error_logs", "receipts", "notifications",
   "delivery_items", "payments", "deliveries", "deletion_requests",
   "admin_otps", "customers", "services", "cylinder_capacities",
   "receipt_template_settings", "profiles", "user_roles"

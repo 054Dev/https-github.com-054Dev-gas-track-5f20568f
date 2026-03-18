@@ -147,12 +147,23 @@ function DevDashboard({ pin }: { pin: string }) {
   );
 }
 
-// Database Tools
+// Clearable tables (never includes dev_db_snapshots)
+const CLEARABLE_TABLES = [
+  "error_logs", "receipts", "notifications",
+  "delivery_items", "payments", "deliveries", "deletion_requests",
+  "admin_otps", "customers", "services", "cylinder_capacities",
+  "receipt_template_settings", "profiles", "user_roles"
+];
+
 function DatabaseTools({ pin }: { pin: string }) {
   const [selectedTable, setSelectedTable] = useState<string>("");
   const [tableData, setTableData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [selectedClearTables, setSelectedClearTables] = useState<string[]>([]);
+  const [protectAdmin, setProtectAdmin] = useState(true);
+  const [confirmText, setConfirmText] = useState("");
   const { toast } = useToast();
 
   const loadTableData = async (table: string) => {
@@ -189,15 +200,47 @@ function DatabaseTools({ pin }: { pin: string }) {
   const [showRecoveryHub, setShowRecoveryHub] = useState(false);
   const [recoveryBackups, setRecoveryBackups] = useState<any[]>([]);
 
-  const clearAll = async () => {
+  const openClearDialog = () => {
+    setSelectedClearTables([]);
+    setProtectAdmin(true);
+    setConfirmText("");
+    setShowClearDialog(true);
+  };
+
+  const toggleClearTable = (table: string) => {
+    setSelectedClearTables(prev =>
+      prev.includes(table) ? prev.filter(t => t !== table) : [...prev, table]
+    );
+  };
+
+  const selectAllClearTables = () => {
+    const adminTables = ["profiles", "user_roles"];
+    if (selectedClearTables.length === CLEARABLE_TABLES.length) {
+      setSelectedClearTables([]);
+    } else {
+      setSelectedClearTables(
+        protectAdmin ? CLEARABLE_TABLES.filter(t => !adminTables.includes(t)) : [...CLEARABLE_TABLES]
+      );
+    }
+  };
+
+  const executeClear = async () => {
+    if (confirmText !== "DELETE") return;
     setClearing(true);
+    setShowClearDialog(false);
     try {
       const { data, error } = await supabase.functions.invoke("dev-tools", {
-        body: { action: "clear_all", pin },
+        body: {
+          action: "clear_all",
+          pin,
+          tables: selectedClearTables.length > 0 ? selectedClearTables : undefined,
+          protect_admin: protectAdmin,
+        },
       });
       if (error) throw error;
       toast({ title: "Database Cleared", description: `${data?.results?.length} tables processed. Auto-backup was created.` });
       setTableData([]);
+      setConfirmText("");
       // Load backups and show recovery hub
       const { data: backupData } = await supabase.functions.invoke("dev-tools", {
         body: { action: "list_backups", pin },
@@ -223,6 +266,8 @@ function DatabaseTools({ pin }: { pin: string }) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
   };
+
+  const adminTables = ["profiles", "user_roles"];
 
   return (
     <div className="space-y-4">
@@ -252,7 +297,7 @@ function DatabaseTools({ pin }: { pin: string }) {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear {selectedTable}?</AlertDialogTitle>
-                  <AlertDialogDescription>This will permanently delete all rows in this table. This action cannot be undone.</AlertDialogDescription>
+                  <AlertDialogDescription>This will permanently delete all rows in this table. An auto-backup will be created first.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -264,29 +309,121 @@ function DatabaseTools({ pin }: { pin: string }) {
         )}
 
         <div className="ml-auto">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={clearing}>
-                <Trash2 className="h-4 w-4 mr-1" /> Clear Entire Database
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>⚠️ Clear ENTIRE Database?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will delete ALL data from ALL tables. An automatic backup will be created first so you can restore later.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={clearAll} className="bg-destructive text-destructive-foreground">
-                  Yes, Delete Everything
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button variant="destructive" disabled={clearing} onClick={openClearDialog}>
+            <Trash2 className="h-4 w-4 mr-1" /> Selective Database Clear
+          </Button>
         </div>
       </div>
+
+      {/* Selective Clear Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent className="max-w-lg max-h-[85vh] overflow-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Selective Database Clear
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose which tables to clear. Backups are <strong>never</strong> deleted. An auto-backup is always created before clearing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4">
+            {/* Admin protection toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-primary/30 bg-primary/5">
+              <Shield className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Protect admin data</p>
+                <p className="text-xs text-muted-foreground">Keep profiles & user_roles intact (your admin account)</p>
+              </div>
+              <Button
+                variant={protectAdmin ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setProtectAdmin(!protectAdmin);
+                  if (!protectAdmin) {
+                    // Re-enabling protection: remove admin tables from selection
+                    setSelectedClearTables(prev => prev.filter(t => !adminTables.includes(t)));
+                  }
+                }}
+              >
+                {protectAdmin ? "Protected ✓" : "Unprotected"}
+              </Button>
+            </div>
+
+            {/* Table selection */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">Select tables to clear:</p>
+                <Button variant="ghost" size="sm" onClick={selectAllClearTables}>
+                  {selectedClearTables.length === CLEARABLE_TABLES.length ? "Deselect All" : "Select All"}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 max-h-60 overflow-auto">
+                {CLEARABLE_TABLES.map((table) => {
+                  const isAdmin = adminTables.includes(table);
+                  const isDisabled = protectAdmin && isAdmin;
+                  const isSelected = selectedClearTables.includes(table);
+                  return (
+                    <button
+                      key={table}
+                      onClick={() => !isDisabled && toggleClearTable(table)}
+                      disabled={isDisabled}
+                      className={`text-left text-xs p-2 rounded border transition-colors ${
+                        isDisabled
+                          ? "opacity-40 cursor-not-allowed border-muted bg-muted/30"
+                          : isSelected
+                          ? "border-destructive bg-destructive/10 text-destructive font-medium"
+                          : "border-border hover:border-muted-foreground/30 hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <span className={`w-3 h-3 rounded border flex items-center justify-center shrink-0 ${
+                          isSelected ? "bg-destructive border-destructive text-destructive-foreground" : "border-muted-foreground/30"
+                        }`}>
+                          {isSelected && <span className="text-[8px]">✓</span>}
+                        </span>
+                        {table}
+                        {isAdmin && <Shield className="h-3 w-3 text-primary ml-auto" />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                {selectedClearTables.length} table{selectedClearTables.length !== 1 ? "s" : ""} selected
+                {protectAdmin && " · Admin data protected"}
+              </p>
+            </div>
+
+            {/* Confirmation */}
+            {selectedClearTables.length > 0 && (
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-sm text-destructive font-medium">
+                  Type <strong>DELETE</strong> to confirm:
+                </p>
+                <Input
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="Type DELETE"
+                  className="font-mono"
+                />
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setConfirmText(""); }}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={selectedClearTables.length === 0 || confirmText !== "DELETE"}
+              onClick={executeClear}
+            >
+              Clear {selectedClearTables.length} Table{selectedClearTables.length !== 1 ? "s" : ""}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {selectedTable && (
         <Card>
@@ -338,7 +475,7 @@ function DatabaseTools({ pin }: { pin: string }) {
               System Recovery Hub
             </CardTitle>
             <CardDescription>
-              The database has been cleared. An automatic backup was created before clearing. Choose how to proceed:
+              Tables have been cleared. An automatic backup was created before clearing. Choose how to proceed:
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

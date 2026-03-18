@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FileDown } from "lucide-react";
 import {
   Database, Trash2, Download, Upload, RefreshCw, Shield,
   AlertTriangle, CheckCircle, Bug, Clock, Search, X, Eye

@@ -15,8 +15,9 @@ const SAFE_TABLES = [
   ...BACKUP_TABLES, "error_logs", "dev_db_snapshots", "deletion_requests"
 ];
 
+// NEVER include dev_db_snapshots here — backups must survive clears
 const CLEAR_ORDER = [
-  "error_logs", "dev_db_snapshots", "receipts", "notifications",
+  "error_logs", "receipts", "notifications",
   "delivery_items", "payments", "deliveries", "deletion_requests",
   "admin_otps", "customers", "services", "cylinder_capacities",
   "receipt_template_settings", "profiles", "user_roles"
@@ -161,13 +162,26 @@ Deno.serve(async (req) => {
       }
 
       case "clear_all": {
-        // Auto-backup before full clear
+        const { tables: selectedTables, protect_admin } = params;
+        // Auto-backup before any clear
         await createBackupSnapshot(
           supabaseAdmin,
-          `Auto-backup before full database clear — ${new Date().toISOString()}`
+          `Auto-backup before database clear — ${new Date().toISOString()}`
         );
+
+        const tablesToClear = selectedTables && selectedTables.length > 0
+          ? CLEAR_ORDER.filter((t: string) => selectedTables.includes(t))
+          : CLEAR_ORDER;
+
+        // Tables to skip when protecting admin data
+        const adminProtectedTables = ["profiles", "user_roles"];
+
         const results: string[] = [];
-        for (const table of CLEAR_ORDER) {
+        for (const table of tablesToClear) {
+          if (protect_admin && adminProtectedTables.includes(table)) {
+            results.push(`${table}: skipped (admin data protected)`);
+            continue;
+          }
           try {
             await supabaseAdmin.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
             results.push(`${table}: cleared`);

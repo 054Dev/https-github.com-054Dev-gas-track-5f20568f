@@ -793,6 +793,28 @@ function BackupTools({ pin }: { pin: string }) {
     }
   };
 
+  const downloadBackup = async (id: string, label: string) => {
+    try {
+      toast({ title: "Preparing download..." });
+      const { data, error } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "get_backup", pin, backup_id: id },
+      });
+      if (error) throw error;
+      const blob = new Blob([JSON.stringify(data?.data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-${(label || "unnamed").replace(/[^a-z0-9]/gi, "_").slice(0, 40)}-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Backup Downloaded" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>

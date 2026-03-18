@@ -277,6 +277,17 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, results });
       }
 
+      case "get_backup": {
+        const { backup_id } = params;
+        const { data: snapshot, error: fetchErr } = await supabaseAdmin
+          .from("dev_db_snapshots")
+          .select("*")
+          .eq("id", backup_id)
+          .single();
+        if (fetchErr || !snapshot) throw new Error("Backup not found");
+        return jsonResponse({ data: snapshot });
+      }
+
       case "delete_backup": {
         const { backup_id } = params;
         const { error } = await supabaseAdmin

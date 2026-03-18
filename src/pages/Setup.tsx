@@ -25,6 +25,7 @@ import {
   AlertTriangle, CheckCircle, Bug, Clock, Search, X, Eye
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { SystemHealthCard } from "@/components/SystemHealthCard";
 
 const TABLES = [
   "customers", "deliveries", "delivery_items", "payments",

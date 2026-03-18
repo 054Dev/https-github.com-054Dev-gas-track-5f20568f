@@ -117,7 +117,8 @@ function DevDashboard({ pin }: { pin: string }) {
         </div>
       </header>
 
-      <div className="container px-4 py-6">
+      <div className="container px-4 py-6 space-y-6">
+        <SystemHealthCard />
         <Tabs defaultValue="database" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="database" className="gap-1">

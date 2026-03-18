@@ -859,6 +859,9 @@ function BackupTools({ pin }: { pin: string }) {
                   <p className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => downloadBackup(b.id, b.label)} title="Download as JSON">
+                    <FileDown className="h-4 w-4" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="sm"><Upload className="h-4 w-4 mr-1" /> Restore</Button>

@@ -25,6 +25,7 @@ import {
   AlertTriangle, CheckCircle, Bug, Clock, Search, X, Eye
 } from "lucide-react";
 import logo from "@/assets/logo.png";
+import { SystemHealthCard } from "@/components/SystemHealthCard";
 
 const TABLES = [
   "customers", "deliveries", "delivery_items", "payments",
@@ -116,7 +117,8 @@ function DevDashboard({ pin }: { pin: string }) {
         </div>
       </header>
 
-      <div className="container px-4 py-6">
+      <div className="container px-4 py-6 space-y-6">
+        <SystemHealthCard />
         <Tabs defaultValue="database" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="database" className="gap-1">

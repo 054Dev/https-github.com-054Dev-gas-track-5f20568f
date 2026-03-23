@@ -129,7 +129,7 @@ export function PaymentModal({
           {!stkSent ? (
             <>
               <div className="flex items-center gap-3 p-4 border rounded-lg bg-accent/30">
-                <Smartphone className="h-8 w-8 text-green-600 shrink-0" />
+                <Smartphone className="h-8 w-8 text-primary shrink-0" />
                 <div>
                   <p className="font-medium">M-Pesa STK Push</p>
                   <p className="text-sm text-muted-foreground">

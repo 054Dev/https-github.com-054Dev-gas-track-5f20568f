@@ -105,7 +105,8 @@ Deno.serve(async (req) => {
       // Also accept PIN auth
     }
 
-    if (!authenticated) {
+    // check_system_initialized is public — it only reveals a boolean
+    if (!authenticated && action !== "check_system_initialized") {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -161,8 +161,8 @@ export function PaymentModal({
           ) : (
             <>
               <div className="text-center space-y-3">
-                <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <CheckCircle className="h-8 w-8 text-primary" />
                 </div>
                 <div>
                   <p className="font-semibold">STK Push Sent!</p>

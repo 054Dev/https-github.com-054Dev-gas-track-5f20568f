@@ -6,6 +6,46 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Daraja sandbox URLs
+const DARAJA_AUTH_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
+const DARAJA_STK_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+const DARAJA_STK_QUERY_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query";
+const BUSINESS_SHORT_CODE = "174379"; // Sandbox shortcode
+
+// Helper: get Daraja OAuth token
+async function getDarajaToken(): Promise<string> {
+  const consumerKey = Deno.env.get("DARAJA_CONSUMER_KEY");
+  const consumerSecret = Deno.env.get("DARAJA_CONSUMER_SECRET");
+  if (!consumerKey || !consumerSecret) throw new Error("Daraja credentials not configured");
+
+  const auth = btoa(`${consumerKey}:${consumerSecret}`);
+  const res = await fetch(DARAJA_AUTH_URL, {
+    headers: { Authorization: `Basic ${auth}` },
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Daraja auth failed [${res.status}]: ${errText}`);
+  }
+  const data = await res.json();
+  return data.access_token;
+}
+
+// Helper: generate STK push password
+function generatePassword(timestamp: string): string {
+  const passkey = Deno.env.get("DARAJA_PASSKEY") || "";
+  const raw = `${BUSINESS_SHORT_CODE}${passkey}${timestamp}`;
+  return btoa(raw);
+}
+
+// Helper: format phone for Daraja (254XXXXXXXXX)
+function formatPhone(phone: string): string {
+  let cleaned = phone.replace(/[\s\-\+]/g, "");
+  if (cleaned.startsWith("0")) cleaned = "254" + cleaned.slice(1);
+  if (cleaned.startsWith("+")) cleaned = cleaned.slice(1);
+  if (!cleaned.startsWith("254")) cleaned = "254" + cleaned;
+  return cleaned;
+}
+
 // Helper function to verify authentication
 async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
@@ -37,17 +77,13 @@ async function verifyAdminRole(supabaseAdmin: any, userId: string): Promise<bool
 
 // Helper function to verify customer ownership or admin role
 async function verifyCustomerAccess(
-  supabaseAdmin: any, 
-  userId: string, 
+  supabaseAdmin: any,
+  userId: string,
   customerId: string
 ): Promise<{ authorized: boolean; isAdmin: boolean }> {
-  // Check if user is admin/staff
   const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
-  if (isAdmin) {
-    return { authorized: true, isAdmin: true };
-  }
+  if (isAdmin) return { authorized: true, isAdmin: true };
 
-  // Check if user owns the customer record
   const { data: customer } = await supabaseAdmin
     .from('customers')
     .select('user_id')
@@ -67,7 +103,6 @@ serve(async (req) => {
   }
 
   try {
-    // Use service role for backend operations
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -75,8 +110,8 @@ serve(async (req) => {
 
     const { action, ...data } = await req.json();
 
+    // ─── STK PUSH (M-Pesa payment) ────────────────────────────
     if (action === "initialize-payment") {
-      // Verify authentication
       const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
       if (authError || !userId) {
         return new Response(
@@ -85,9 +120,8 @@ serve(async (req) => {
         );
       }
 
-      const { customerId, amount, deliveryId, paymentMethod } = data;
+      const { customerId, amount, deliveryId } = data;
 
-      // Verify user has access to this customer
       const { authorized } = await verifyCustomerAccess(supabaseAdmin, userId, customerId);
       if (!authorized) {
         return new Response(
@@ -96,12 +130,9 @@ serve(async (req) => {
         );
       }
 
-      console.log("Initializing payment:", { customerId, amount, deliveryId, paymentMethod, userId });
+      console.log("Initializing Daraja STK push:", { customerId, amount, deliveryId, userId });
 
-      const intasendApiKey = Deno.env.get("INTASEND_API_KEY");
-      const intasendPublishableKey = Deno.env.get("INTASEND_PUBLISHABLE_KEY");
-
-      // Get customer details using service role to bypass RLS
+      // Get customer phone
       const { data: customer, error: customerError } = await supabaseAdmin
         .from("customers")
         .select("*")
@@ -109,133 +140,158 @@ serve(async (req) => {
         .single();
 
       if (customerError || !customer) {
-        console.error("Customer fetch error:", customerError);
         return new Response(
           JSON.stringify({ error: "Customer not found" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Map frontend payment methods to Intasend API method values
-      const methodMap: Record<string, string> = {
-        "mpesa": "M-PESA",
-        "airtel-money": "M-PESA",
-        "bank-transfer": "BANK-PAYMENT",
-        "card": "CARD-PAYMENT"
-      };
-      
-      const intasendMethod = methodMap[paymentMethod] || "M-PESA";
+      const phone = formatPhone(customer.phone);
+      const timestamp = new Date().toISOString().replace(/[-T:\.Z]/g, "").slice(0, 14);
+      const password = generatePassword(timestamp);
 
-      // Create payment collection request
-      const intasendResponse = await fetch("https://api.intasend.com/api/v1/payment/collection/", {
+      const token = await getDarajaToken();
+
+      const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/intasend-payment`;
+
+      const stkPayload = {
+        BusinessShortCode: BUSINESS_SHORT_CODE,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: "CustomerPayBillOnline",
+        Amount: Math.ceil(amount), // Daraja requires integer
+        PartyA: phone,
+        PartyB: BUSINESS_SHORT_CODE,
+        PhoneNumber: phone,
+        CallBackURL: callbackUrl,
+        AccountReference: deliveryId ? deliveryId.slice(0, 12) : `PAY${Date.now()}`,
+        TransactionDesc: `Payment for gas delivery`,
+      };
+
+      const stkRes = await fetch(DARAJA_STK_URL, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${intasendApiKey}`,
         },
-        body: JSON.stringify({
-          public_key: intasendPublishableKey,
-          email: customer.email,
-          phone_number: customer.phone,
-          amount: amount,
-          currency: "KES",
-          api_ref: deliveryId || `payment-${Date.now()}`,
-          method: intasendMethod,
-          name: customer.in_charge_name,
-        }),
+        body: JSON.stringify(stkPayload),
       });
 
-      if (!intasendResponse.ok) {
-        const error = await intasendResponse.text();
-        console.error("Intasend error:", error);
+      const stkData = await stkRes.json();
+      console.log("Daraja STK response:", stkData);
+
+      if (stkData.ResponseCode !== "0" && stkData.errorCode) {
         return new Response(
-          JSON.stringify({ error: `Payment provider error` }),
+          JSON.stringify({ error: stkData.errorMessage || "STK push failed" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const paymentData = await intasendResponse.json();
-      console.log("Payment initialized successfully");
-
       return new Response(
-        JSON.stringify({ success: true, data: paymentData }),
+        JSON.stringify({
+          success: true,
+          message: "STK push sent. Check your phone for the M-Pesa prompt.",
+          checkoutRequestId: stkData.CheckoutRequestID,
+          merchantRequestId: stkData.MerchantRequestID,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (action === "webhook") {
-      // Webhooks don't require auth - they come from Intasend
-      console.log("Webhook received:", data);
+    // ─── DARAJA STK CALLBACK ──────────────────────────────────
+    if (action === "webhook" || (!data.action && data.Body?.stkCallback)) {
+      // Daraja sends callback as { Body: { stkCallback: {...} } }
+      const callback = data.Body?.stkCallback || data;
+      console.log("Daraja callback received:", JSON.stringify(callback));
 
-      const { invoice_id, state, amount, currency, api_ref, account } = data;
+      const resultCode = callback.ResultCode;
+      const checkoutRequestId = callback.CheckoutRequestID;
 
-      if (state === "COMPLETE") {
-        // Find the delivery using service role
-        const { data: delivery } = await supabaseAdmin
-          .from("deliveries")
-          .select("*, customers(*)")
-          .eq("id", api_ref)
-          .single();
+      if (resultCode === 0) {
+        // Payment successful — extract metadata
+        const items = callback.CallbackMetadata?.Item || [];
+        const getMeta = (name: string) => items.find((i: any) => i.Name === name)?.Value;
 
-        if (delivery) {
+        const amount = getMeta("Amount");
+        const mpesaRef = getMeta("MpesaReceiptNumber");
+        const phone = getMeta("PhoneNumber")?.toString();
 
-          const { data: payment, error: paymentError } = await supabaseAdmin
-            .from("payments")
-            .insert({
-              customer_id: delivery.customer_id,
-              delivery_id: delivery.id,
-              amount_paid: parseFloat(amount),
-              method: account || "mobile_money",
-              payment_provider: "intasend",
-              payment_status: "completed",
-              transaction_id: invoice_id,
-              reference: invoice_id,
-            })
-            .select()
-            .single();
+        // Find customer by phone
+        const formattedPhone = phone ? `+${phone}` : null;
+        let customerId: string | null = null;
 
-          if (paymentError) {
-            console.error("Payment insert error:", paymentError);
-            throw paymentError;
-          }
-
-          // Update customer arrears (allow negative for credits/overpayments)
-          const newArrears = (delivery.customers.arrears_balance || 0) - parseFloat(amount);
-          await supabaseAdmin
+        if (formattedPhone) {
+          // Try multiple phone formats
+          const phoneVariants = [
+            formattedPhone,
+            phone,
+            `0${phone?.slice(3)}`,
+            `+${phone}`,
+          ];
+          const { data: customerMatch } = await supabaseAdmin
             .from("customers")
-            .update({ arrears_balance: newArrears })
-            .eq("id", delivery.customer_id);
+            .select("id, arrears_balance, email, in_charge_name")
+            .or(phoneVariants.map(p => `phone.eq.${p}`).join(","))
+            .maybeSingle();
 
-          // Send receipt email if customer has email
-          if (delivery.customers.email && payment) {
-            try {
-              const supabaseUrl = Deno.env.get("SUPABASE_URL");
-              const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-              
-              await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${anonKey}`,
-                },
-                body: JSON.stringify({
-                  paymentId: payment.id,
-                  customerEmail: delivery.customers.email,
-                  customerName: delivery.customers.in_charge_name,
-                  amount: parseFloat(amount),
-                  method: account || "mobile_money",
-                  transactionId: invoice_id,
-                  paidAt: payment.paid_at,
-                }),
-              });
-              console.log("Receipt email sent");
-            } catch (emailError) {
-              console.error("Failed to send receipt email:", emailError);
+          if (customerMatch) {
+            customerId = customerMatch.id;
+
+            // Record payment
+            const { data: payment } = await supabaseAdmin
+              .from("payments")
+              .insert({
+                customer_id: customerId,
+                amount_paid: parseFloat(amount),
+                method: "mpesa",
+                payment_provider: "daraja",
+                payment_status: "completed",
+                transaction_id: mpesaRef,
+                reference: checkoutRequestId,
+              })
+              .select()
+              .single();
+
+            // Update arrears
+            const newArrears = (customerMatch.arrears_balance || 0) - parseFloat(amount);
+            await supabaseAdmin
+              .from("customers")
+              .update({ arrears_balance: newArrears })
+              .eq("id", customerId);
+
+            // Send receipt email
+            if (customerMatch.email && payment) {
+              try {
+                const supabaseUrl = Deno.env.get("SUPABASE_URL");
+                const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+                await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${anonKey}`,
+                  },
+                  body: JSON.stringify({
+                    paymentId: payment.id,
+                    customerEmail: customerMatch.email,
+                    customerName: customerMatch.in_charge_name,
+                    amount: parseFloat(amount),
+                    method: "mpesa",
+                    transactionId: mpesaRef,
+                    paidAt: payment.paid_at,
+                  }),
+                });
+              } catch (emailError) {
+                console.error("Failed to send receipt email:", emailError);
+              }
             }
-          }
 
-          console.log("Payment recorded successfully");
+            console.log(`Payment recorded: KES ${amount} from ${phone}, ref ${mpesaRef}`);
+          } else {
+            console.error("No customer found for phone:", phone);
+          }
         }
+      } else {
+        console.log("STK push failed or cancelled. ResultCode:", resultCode);
       }
 
       return new Response(
@@ -244,8 +300,8 @@ serve(async (req) => {
       );
     }
 
-    if (action === "cash-payment") {
-      // Verify authentication
+    // ─── STK QUERY (check payment status) ─────────────────────
+    if (action === "query-payment") {
       const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
       if (authError || !userId) {
         return new Response(
@@ -254,7 +310,42 @@ serve(async (req) => {
         );
       }
 
-      // Verify admin/staff role for cash payments
+      const { checkoutRequestId } = data;
+      const timestamp = new Date().toISOString().replace(/[-T:\.Z]/g, "").slice(0, 14);
+      const password = generatePassword(timestamp);
+      const token = await getDarajaToken();
+
+      const queryRes = await fetch(DARAJA_STK_QUERY_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          BusinessShortCode: BUSINESS_SHORT_CODE,
+          Password: password,
+          Timestamp: timestamp,
+          CheckoutRequestID: checkoutRequestId,
+        }),
+      });
+
+      const queryData = await queryRes.json();
+      return new Response(
+        JSON.stringify({ success: true, data: queryData }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ─── CASH PAYMENT (admin records) ─────────────────────────
+    if (action === "cash-payment") {
+      const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
+      if (authError || !userId) {
+        return new Response(
+          JSON.stringify({ error: authError }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
       if (!isAdmin) {
         return new Response(
@@ -265,7 +356,6 @@ serve(async (req) => {
 
       const { customerId, deliveryId, amount, handledBy } = data;
 
-      // Validate input
       if (!customerId || typeof amount !== 'number' || amount <= 0) {
         return new Response(
           JSON.stringify({ error: "Invalid payment data" }),
@@ -275,7 +365,6 @@ serve(async (req) => {
 
       console.log("Recording cash payment:", { customerId, amount, handledBy: userId });
 
-      // Get customer details first
       const { data: customer } = await supabaseAdmin
         .from("customers")
         .select("email, in_charge_name, arrears_balance")
@@ -298,50 +387,46 @@ serve(async (req) => {
           method: "cash",
           payment_provider: "manual",
           payment_status: "completed",
-          handled_by: userId, // Use authenticated user, not client-provided
+          handled_by: userId,
           reference: `CASH-${Date.now()}`,
         })
         .select()
         .single();
 
       if (paymentError) {
-        console.error("Cash payment error:", paymentError);
         return new Response(
           JSON.stringify({ error: "Failed to record payment" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Update customer arrears (allow negative for credits/overpayments)
       const newArrears = (customer.arrears_balance || 0) - amount;
       await supabaseAdmin
         .from("customers")
         .update({ arrears_balance: newArrears })
         .eq("id", customerId);
 
-      // Send receipt email if customer has email
+      // Send receipt email
       if (customer.email && payment) {
         try {
           const supabaseUrl = Deno.env.get("SUPABASE_URL");
           const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
           await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${anonKey}`,
+              Authorization: `Bearer ${anonKey}`,
             },
             body: JSON.stringify({
               paymentId: payment.id,
               customerEmail: customer.email,
               customerName: customer.in_charge_name,
-              amount: amount,
+              amount,
               method: "cash",
               transactionId: payment.reference,
               paidAt: payment.paid_at,
             }),
           });
-          console.log("Receipt email sent for cash payment");
         } catch (emailError) {
           console.error("Failed to send receipt email:", emailError);
         }
@@ -353,11 +438,7 @@ serve(async (req) => {
       );
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // ACTION: overpayment-billing
-    // Called after a delivery is created to check if the customer
-    // has a credit balance and auto-bill against the new delivery.
-    // ──────────────────────────────────────────────────────────────
+    // ─── OVERPAYMENT BILLING ──────────────────────────────────
     if (action === "overpayment-billing") {
       const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
       if (authError || !userId) {
@@ -375,7 +456,6 @@ serve(async (req) => {
         );
       }
 
-      // Fetch customer and delivery
       const [{ data: customer }, { data: delivery }] = await Promise.all([
         supabaseAdmin
           .from("customers")
@@ -399,7 +479,6 @@ serve(async (req) => {
       const currentBalance = Number(customer.arrears_balance || 0);
       const orderCost = Number(delivery.total_charge);
 
-      // Only auto-bill if customer has credit (negative arrears = credit)
       if (currentBalance >= 0) {
         return new Response(
           JSON.stringify({ success: true, message: "No credit to apply", creditApplied: 0 }),
@@ -407,15 +486,10 @@ serve(async (req) => {
         );
       }
 
-      // Credit amount available (positive value)
       const creditAvailable = Math.abs(currentBalance);
-      // Amount to bill from overpayment = min(credit, orderCost)
       const billedAmount = Math.min(creditAvailable, orderCost);
-      const newArrears = currentBalance + billedAmount; // moves toward 0 or stays negative
+      const newArrears = currentBalance + billedAmount;
 
-      const datestamp = new Date().toISOString();
-
-      // Record an overpayment payment entry
       const { data: payment, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
@@ -432,32 +506,26 @@ serve(async (req) => {
         .single();
 
       if (paymentError) {
-        console.error("Overpayment billing error:", paymentError);
         return new Response(
           JSON.stringify({ error: "Failed to record overpayment billing" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Update customer arrears
       await supabaseAdmin
         .from("customers")
         .update({ arrears_balance: newArrears })
         .eq("id", customerId);
 
-      console.log(`Overpayment billed: KES ${billedAmount} for delivery ${deliveryId}. New balance: ${newArrears}`);
-
-      // Send receipt email for overpayment billing
       if (customer.email && payment) {
         try {
           const supabaseUrl = Deno.env.get("SUPABASE_URL");
           const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
           await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${anonKey}`,
+              Authorization: `Bearer ${anonKey}`,
             },
             body: JSON.stringify({
               paymentId: payment.id,
@@ -466,8 +534,7 @@ serve(async (req) => {
               amount: billedAmount,
               method: "overpayment",
               transactionId: payment.reference,
-              paidAt: datestamp,
-              notes: `Billed from overpayment on ${new Date(datestamp).toLocaleString("en-KE")}`,
+              paidAt: new Date().toISOString(),
             }),
           });
         } catch (emailError) {
@@ -476,13 +543,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({
-          success: true,
-          creditApplied: billedAmount,
-          newArrears,
-          payment,
-          message: `Billed KES ${billedAmount} from overpayment`,
-        }),
+        JSON.stringify({ success: true, creditApplied: billedAmount, newArrears, payment }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -499,4 +560,3 @@ serve(async (req) => {
     );
   }
 });
-

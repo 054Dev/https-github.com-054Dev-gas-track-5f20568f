@@ -108,7 +108,76 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const { action, ...data } = await req.json();
+    const rawBody = await req.json();
+
+    // Daraja sends callback directly with Body.stkCallback — no "action" field
+    if (rawBody.Body?.stkCallback) {
+      const callback = rawBody.Body.stkCallback;
+      console.log("Daraja callback received:", JSON.stringify(callback));
+
+      const resultCode = callback.ResultCode;
+      if (resultCode === 0) {
+        const items = callback.CallbackMetadata?.Item || [];
+        const getMeta = (name: string) => items.find((i: any) => i.Name === name)?.Value;
+
+        const amount = getMeta("Amount");
+        const mpesaRef = getMeta("MpesaReceiptNumber");
+        const phone = getMeta("PhoneNumber")?.toString();
+
+        if (phone) {
+          const phoneVariants = [
+            `+${phone}`, phone, `0${phone?.slice(3)}`,
+          ];
+          const { data: customerMatch } = await supabaseAdmin
+            .from("customers")
+            .select("id, arrears_balance, email, in_charge_name")
+            .or(phoneVariants.map(p => `phone.eq.${p}`).join(","))
+            .maybeSingle();
+
+          if (customerMatch) {
+            const { data: payment } = await supabaseAdmin
+              .from("payments")
+              .insert({
+                customer_id: customerMatch.id,
+                amount_paid: parseFloat(amount),
+                method: "mpesa",
+                payment_provider: "daraja",
+                payment_status: "completed",
+                transaction_id: mpesaRef,
+                reference: callback.CheckoutRequestID,
+              })
+              .select()
+              .single();
+
+            const newArrears = (customerMatch.arrears_balance || 0) - parseFloat(amount);
+            await supabaseAdmin.from("customers").update({ arrears_balance: newArrears }).eq("id", customerMatch.id);
+
+            if (customerMatch.email && payment) {
+              try {
+                const supabaseUrl = Deno.env.get("SUPABASE_URL");
+                const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+                await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+                  body: JSON.stringify({
+                    paymentId: payment.id, customerEmail: customerMatch.email,
+                    customerName: customerMatch.in_charge_name, amount: parseFloat(amount),
+                    method: "mpesa", transactionId: mpesaRef, paidAt: payment.paid_at,
+                  }),
+                });
+              } catch (e) { console.error("Receipt email error:", e); }
+            }
+            console.log(`Daraja payment recorded: KES ${amount}, ref ${mpesaRef}`);
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { action, ...data } = rawBody;
 
     // ─── STK PUSH (M-Pesa payment) ────────────────────────────
     if (action === "initialize-payment") {

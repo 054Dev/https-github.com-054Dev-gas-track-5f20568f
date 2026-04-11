@@ -120,8 +120,11 @@ function DevDashboard({ pin }: { pin: string }) {
 
       <div className="container px-4 py-6 space-y-6">
         <SystemHealthCard />
-        <Tabs defaultValue="database" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="initialize" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="initialize" className="gap-1">
+              <RefreshCw className="h-4 w-4" /> Initialize
+            </TabsTrigger>
             <TabsTrigger value="database" className="gap-1">
               <Database className="h-4 w-4" /> Database
             </TabsTrigger>
@@ -133,6 +136,9 @@ function DevDashboard({ pin }: { pin: string }) {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="initialize">
+            <InitializeSystem pin={pin} />
+          </TabsContent>
           <TabsContent value="database">
             <DatabaseTools pin={pin} />
           </TabsContent>

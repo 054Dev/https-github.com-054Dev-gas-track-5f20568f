@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -120,8 +121,11 @@ function DevDashboard({ pin }: { pin: string }) {
 
       <div className="container px-4 py-6 space-y-6">
         <SystemHealthCard />
-        <Tabs defaultValue="database" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="initialize" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="initialize" className="gap-1">
+              <RefreshCw className="h-4 w-4" /> Initialize
+            </TabsTrigger>
             <TabsTrigger value="database" className="gap-1">
               <Database className="h-4 w-4" /> Database
             </TabsTrigger>
@@ -133,6 +137,9 @@ function DevDashboard({ pin }: { pin: string }) {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="initialize">
+            <InitializeSystem pin={pin} />
+          </TabsContent>
           <TabsContent value="database">
             <DatabaseTools pin={pin} />
           </TabsContent>
@@ -144,6 +151,164 @@ function DevDashboard({ pin }: { pin: string }) {
           </TabsContent>
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+// Clearable tables (never includes dev_db_snapshots)
+// Initialize System — create admin account & reinitialize
+function InitializeSystem({ pin }: { pin: string }) {
+  const [systemStatus, setSystemStatus] = useState<{ initialized: boolean; hasBackups: boolean; recentBackups: any[] } | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminFullName, setAdminFullName] = useState("");
+  const [adminUsername, setAdminUsername] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => { checkStatus(); }, []);
+
+  const checkStatus = async () => {
+    setChecking(true);
+    try {
+      const { data } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "check_system_initialized" },
+      });
+      if (data) setSystemStatus(data);
+    } catch { /* ignore */ } finally { setChecking(false); }
+  };
+
+  const createAdmin = async () => {
+    if (!adminEmail || !adminPassword || !adminFullName || !adminUsername) {
+      toast({ title: "All fields required", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-tools", {
+        body: {
+          action: "initialize_system",
+          pin,
+          email: adminEmail,
+          password: adminPassword,
+          full_name: adminFullName,
+          username: adminUsername,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "System Initialized", description: "Admin account created successfully." });
+      setAdminEmail(""); setAdminPassword(""); setAdminFullName(""); setAdminUsername("");
+      checkStatus();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    } finally { setCreating(false); }
+  };
+
+  const restoreBackup = async (backupId: string) => {
+    setRestoring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-tools", {
+        body: { action: "restore_backup", pin, backup_id: backupId },
+      });
+      if (error) throw error;
+      toast({ title: "Backup Restored", description: `${data?.results?.length} tables restored.` });
+      checkStatus();
+    } catch (e: any) {
+      toast({ title: "Restore Failed", description: e.message, variant: "destructive" });
+    } finally { setRestoring(false); }
+  };
+
+  if (checking) {
+    return <Card><CardContent className="py-12 text-center text-muted-foreground">Checking system status...</CardContent></Card>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className={systemStatus?.initialized ? "border-green-500/30" : "border-destructive/50"}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            {systemStatus?.initialized ? (
+              <><CheckCircle className="h-5 w-5 text-green-500" /> System Initialized</>
+            ) : (
+              <><AlertTriangle className="h-5 w-5 text-destructive" /> System Not Initialized</>
+            )}
+          </CardTitle>
+          <CardDescription>
+            {systemStatus?.initialized
+              ? "An admin account exists. You can reinitialize by clearing the database first."
+              : "No admin account exists. Create one below or restore from a backup."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" size="sm" onClick={checkStatus}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Re-check Status
+          </Button>
+        </CardContent>
+      </Card>
+
+      {!systemStatus?.initialized && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4" /> Create Admin Account
+              </CardTitle>
+              <CardDescription>This will be the primary administrator of the system.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="adminFullName">Full Name</Label>
+                  <Input id="adminFullName" placeholder="Admin Name" value={adminFullName} onChange={(e) => setAdminFullName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="adminUsername">Username</Label>
+                  <Input id="adminUsername" placeholder="admin" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="adminEmail">Email</Label>
+                  <Input id="adminEmail" type="email" placeholder="admin@example.com" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="adminPassword">Password</Label>
+                  <Input id="adminPassword" type="password" placeholder="Strong password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} />
+                </div>
+              </div>
+              <Button onClick={createAdmin} disabled={creating} className="w-full">
+                {creating ? "Creating Admin..." : "Initialize System & Create Admin"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {systemStatus?.hasBackups && systemStatus.recentBackups.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Upload className="h-4 w-4" /> Or Restore from Backup
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {systemStatus.recentBackups.map((b: any) => (
+                  <div key={b.id} className="flex items-center justify-between p-2 rounded border bg-muted/50">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{b.label || "Unnamed"}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(b.created_at).toLocaleString()}</p>
+                    </div>
+                    <Button size="sm" variant="outline" disabled={restoring} onClick={() => restoreBackup(b.id)}>
+                      <Upload className="h-3 w-3 mr-1" /> Restore
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }

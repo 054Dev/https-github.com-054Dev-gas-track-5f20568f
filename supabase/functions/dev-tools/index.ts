@@ -353,6 +353,63 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true });
       }
 
+      case "initialize_system": {
+        const { email, password, full_name, username } = params;
+        if (!email || !password || !full_name || !username) {
+          return jsonResponse({ error: "All fields (email, password, full_name, username) are required" }, 400);
+        }
+
+        // Check if admin already exists
+        const { data: existingAdmin } = await supabaseAdmin
+          .from("user_roles")
+          .select("id")
+          .eq("role", "admin")
+          .maybeSingle();
+        if (existingAdmin) {
+          return jsonResponse({ error: "An admin account already exists. Clear the database first to reinitialize." }, 400);
+        }
+
+        // Check if email already exists in auth and delete if so (ghost account)
+        const { data: { users: existingUsers } } = await supabaseAdmin.auth.admin.listUsers();
+        const ghostUser = existingUsers?.find((u: any) => u.email === email);
+        if (ghostUser) {
+          // Clean up ghost account completely
+          await supabaseAdmin.from("deletion_requests").delete().eq("user_id", ghostUser.id);
+          await supabaseAdmin.from("user_roles").delete().eq("user_id", ghostUser.id);
+          await supabaseAdmin.from("customers").delete().eq("user_id", ghostUser.id);
+          await supabaseAdmin.from("profiles").delete().eq("id", ghostUser.id);
+          await supabaseAdmin.auth.admin.deleteUser(ghostUser.id);
+        }
+
+        // Create new auth user
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name, username },
+        });
+        if (createError) {
+          return jsonResponse({ error: createError.message }, 500);
+        }
+
+        const userId = newUser.user.id;
+
+        // Create profile
+        await supabaseAdmin.from("profiles").insert({
+          id: userId,
+          username,
+          full_name,
+        });
+
+        // Assign admin role
+        await supabaseAdmin.from("user_roles").insert({
+          user_id: userId,
+          role: "admin",
+        });
+
+        return jsonResponse({ success: true, userId, message: "Admin account created and system initialized." });
+      }
+
       default:
         return jsonResponse({ error: "Unknown action" }, 400);
     }

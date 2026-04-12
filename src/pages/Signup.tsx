@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { PasswordInput } from "@/components/PasswordInput";
 import { validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
 import { lovable } from "@/integrations/lovable/index";
 import { Separator } from "@/components/ui/separator";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -25,11 +26,60 @@ export default function Signup() {
     confirmPassword: "",
   });
   const [loading, setLoading] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameDebounce, setUsernameDebounce] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Username availability check
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username || username.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+    setUsernameStatus("checking");
+    try {
+      const { data: existing } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+      
+      if (!existing) {
+        // Also check customers table
+        const { data: customerExisting } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("username", username)
+          .maybeSingle();
+        setUsernameStatus(customerExisting ? "taken" : "available");
+      } else {
+        setUsernameStatus("taken");
+      }
+    } catch {
+      setUsernameStatus("idle");
+    }
+  };
+
+  const handleUsernameChange = (value: string) => {
+    setFormData({ ...formData, username: value });
+    if (usernameDebounce) clearTimeout(usernameDebounce);
+    const timeout = setTimeout(() => checkUsernameAvailability(value), 500);
+    setUsernameDebounce(timeout);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (usernameDebounce) clearTimeout(usernameDebounce);
+    };
+  }, [usernameDebounce]);
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (usernameStatus === "taken") {
+      toast({ title: "Username Taken", description: "Please choose a different username.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
 
     try {
@@ -122,6 +172,7 @@ export default function Signup() {
       });
       if (result.error) {
         toast({ title: `${provider} Sign-Up Failed`, description: String(result.error), variant: "destructive" });
+        setLoading(false);
         return;
       }
       if (result.redirected) return;
@@ -133,14 +184,14 @@ export default function Signup() {
           .eq("user_id", user.id)
           .maybeSingle();
         if (existing) {
-          navigate("/customer/dashboard");
+          navigate("/customer/dashboard", { replace: true });
         } else {
           toast({ title: "Complete Your Profile", description: "Please fill in the form to complete registration." });
+          setLoading(false);
         }
       }
     } catch (e: any) {
       toast({ title: `${provider} Sign-Up Failed`, description: e.message, variant: "destructive" });
-    } finally {
       setLoading(false);
     }
   };
@@ -220,13 +271,37 @@ export default function Signup() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Username *</Label>
-                  <Input
-                    id="username"
-                    placeholder="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="username"
+                      placeholder="username"
+                      value={formData.username}
+                      onChange={(e) => handleUsernameChange(e.target.value)}
+                      required
+                      className={
+                        usernameStatus === "available"
+                          ? "border-green-500 text-green-700 pr-8"
+                          : usernameStatus === "taken"
+                          ? "border-red-500 text-red-700 pr-8"
+                          : "pr-8"
+                      }
+                    />
+                    {usernameStatus === "checking" && (
+                      <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                    {usernameStatus === "available" && (
+                      <CheckCircle className="absolute right-2 top-2.5 h-4 w-4 text-green-500" />
+                    )}
+                    {usernameStatus === "taken" && (
+                      <XCircle className="absolute right-2 top-2.5 h-4 w-4 text-red-500" />
+                    )}
+                  </div>
+                  {usernameStatus === "available" && (
+                    <p className="text-xs text-green-600">Username is available!</p>
+                  )}
+                  {usernameStatus === "taken" && (
+                    <p className="text-xs text-red-600">Username already taken. Choose another username.</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
@@ -288,7 +363,7 @@ export default function Signup() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || usernameStatus === "taken"}>
                 {loading ? "Creating account..." : "Create Account"}
               </Button>
             </form>

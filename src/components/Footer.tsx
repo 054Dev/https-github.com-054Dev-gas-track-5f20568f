@@ -1,6 +1,6 @@
 import { Phone, MessageCircle, Bell, Info } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,8 @@ import { Textarea } from "./ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const ADMIN_PHONE = "+254702255315"; // Developer/admin contact
-const ADMIN_EMAIL = "devmimi2@gmail.com";
+const DEV_PHONE = "+254702255315";
+const DEV_WHATSAPP = "254702255315";
 
 interface FooterProps {
   role?: "admin" | "co_admin" | "staff" | "customer";
@@ -26,17 +26,49 @@ export function Footer({ role }: FooterProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [devDialogOpen, setDevDialogOpen] = useState(false);
   const [contactMessage, setContactMessage] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [adminWhatsapp, setAdminWhatsapp] = useState("");
   const { toast } = useToast();
 
+  const whatsappText = encodeURIComponent("Hello, I clicked the link on Fine Gas Management System.");
+
+  // Load admin contact details from profiles
+  useEffect(() => {
+    const loadAdminContact = async () => {
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (adminRole?.user_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("phone")
+          .eq("id", adminRole.user_id)
+          .maybeSingle();
+
+        if (profile?.phone) {
+          setAdminPhone(profile.phone);
+          // Format for WhatsApp
+          const cleaned = profile.phone.replace(/[\s\-\+]/g, "");
+          setAdminWhatsapp(cleaned.startsWith("0") ? "254" + cleaned.slice(1) : cleaned);
+        }
+      }
+    };
+    if (!isAdmin) {
+      loadAdminContact();
+    }
+  }, [isAdmin]);
+
   const handleCall = () => {
-    window.location.href = `tel:${ADMIN_PHONE}`;
+    const phone = adminPhone || DEV_PHONE;
+    window.location.href = `tel:${phone}`;
   };
 
   const handleWhatsApp = () => {
-    const phone = ADMIN_PHONE.replace(/[^0-9]/g, "");
-    const text = encodeURIComponent("Hello, I need assistance");
-    // Strictly use wa.me, open in new tab
-    const waUrl = `https://wa.me/${phone}?text=${text}`;
+    const phone = adminWhatsapp || DEV_WHATSAPP;
+    const waUrl = `https://wa.me/${phone}?text=${whatsappText}`;
     window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
@@ -63,7 +95,7 @@ export function Footer({ role }: FooterProps) {
         .maybeSingle();
 
       if (!customer) {
-        toast({ title: "Error", description: "Customer profile not found. This feature is only available to customers.", variant: "destructive" });
+        toast({ title: "Error", description: "Customer profile not found.", variant: "destructive" });
         return;
       }
 
@@ -189,6 +221,15 @@ export function Footer({ role }: FooterProps) {
                 <p className="text-sm"><strong>WhatsApp/Phone:</strong> +254702255315</p>
               </div>
               <a 
+                href={`https://wa.me/${DEV_WHATSAPP}?text=${whatsappText}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat on WhatsApp
+              </a>
+              <a 
                 href="https://www.linkedin.com/in/dun-mimi-ndegwa" 
                 target="_blank" 
                 rel="noopener noreferrer"
@@ -198,6 +239,17 @@ export function Footer({ role }: FooterProps) {
                   <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
                 </svg>
                 LinkedIn Profile
+              </a>
+              <a 
+                href="https://duncanndegwa.lovable.app/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                </svg>
+                View Portfolio
               </a>
             </div>
           </div>

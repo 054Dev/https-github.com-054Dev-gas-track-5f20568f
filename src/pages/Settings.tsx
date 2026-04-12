@@ -420,11 +420,7 @@ export default function Settings() {
                       id="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      disabled={isAdmin}
                     />
-                    {isAdmin && (
-                      <p className="text-xs text-muted-foreground">Username cannot be changed here</p>
-                    )}
                   </div>
                 </div>
 

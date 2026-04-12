@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +10,28 @@ import { Header } from "@/components/Header";
 import { PasswordInput } from "@/components/PasswordInput";
 import { lovable } from "@/integrations/lovable/index";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handlePostAuthRedirect = async (userId: string) => {
+  // Check if already logged in
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handlePostAuthRedirect(session.user.id);
+      } else {
+        setPageLoading(false);
+      }
+    });
+  }, []);
+
+  const handlePostAuthRedirect = useCallback(async (userId: string) => {
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
@@ -26,7 +39,7 @@ export default function Login() {
       .maybeSingle();
 
     if (roleData?.role === "admin" || roleData?.role === "co_admin" || roleData?.role === "staff") {
-      navigate("/admin/dashboard");
+      navigate("/admin/dashboard", { replace: true });
     } else {
       const { data: customerData } = await supabase
         .from("customers")
@@ -35,7 +48,7 @@ export default function Login() {
         .maybeSingle();
 
       if (customerData) {
-        navigate("/customer/dashboard");
+        navigate("/customer/dashboard", { replace: true });
       } else {
         toast({
           title: "Access Denied",
@@ -43,8 +56,55 @@ export default function Login() {
           variant: "destructive",
         });
         await supabase.auth.signOut();
+        setPageLoading(false);
       }
     }
+  }, [navigate, toast]);
+
+  // Resolve identifier (username/phone) to email
+  const resolveEmail = async (input: string): Promise<string> => {
+    const trimmed = input.trim();
+    // If it looks like an email, use directly
+    if (trimmed.includes("@")) return trimmed;
+
+    // Try username lookup in profiles
+    const { data: profileByUsername } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", trimmed)
+      .maybeSingle();
+
+    if (profileByUsername) {
+      // Get email from auth via a workaround: check customers table
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("email")
+        .eq("user_id", profileByUsername.id)
+        .maybeSingle();
+      if (customer?.email) return customer.email;
+    }
+
+    // Try phone lookup in customers
+    const phoneVariants = [trimmed, `+${trimmed}`, `+254${trimmed.replace(/^0/, "")}`];
+    for (const phone of phoneVariants) {
+      const { data: customerByPhone } = await supabase
+        .from("customers")
+        .select("email")
+        .eq("phone", phone)
+        .maybeSingle();
+      if (customerByPhone?.email) return customerByPhone.email;
+    }
+
+    // Try username in customers table
+    const { data: customerByUsername } = await supabase
+      .from("customers")
+      .select("email")
+      .eq("username", trimmed)
+      .maybeSingle();
+    if (customerByUsername?.email) return customerByUsername.email;
+
+    // Fall through — use as-is (will fail at auth)
+    return trimmed;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,6 +112,8 @@ export default function Login() {
     setLoading(true);
 
     try {
+      const email = await resolveEmail(identifier);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -80,6 +142,30 @@ export default function Login() {
       });
       if (result.error) {
         toast({ title: "Google Sign-In Failed", description: String(result.error), variant: "destructive" });
+        setLoading(false);
+        return;
+      }
+      if (result.redirected) return;
+      // After OAuth returns, get user and redirect
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await handlePostAuthRedirect(user.id);
+      }
+    } catch (e: any) {
+      toast({ title: "Google Sign-In Failed", description: e.message, variant: "destructive" });
+      setLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("apple", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast({ title: "Apple Sign-In Failed", description: String(result.error), variant: "destructive" });
+        setLoading(false);
         return;
       }
       if (result.redirected) return;
@@ -88,11 +174,33 @@ export default function Login() {
         await handlePostAuthRedirect(user.id);
       }
     } catch (e: any) {
-      toast({ title: "Google Sign-In Failed", description: e.message, variant: "destructive" });
-    } finally {
+      toast({ title: "Apple Sign-In Failed", description: e.message, variant: "destructive" });
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container flex items-center justify-center py-12">
+          <div className="w-full max-w-md space-y-4">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-8 w-48 mx-auto" />
+                <Skeleton className="h-4 w-64 mx-auto mt-2" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -128,25 +236,7 @@ export default function Login() {
                     size="icon"
                     className="h-10 w-10"
                     disabled={loading}
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const result = await lovable.auth.signInWithOAuth("apple", {
-                          redirect_uri: window.location.origin,
-                        });
-                        if (result.error) {
-                          toast({ title: "Apple Sign-In Failed", description: String(result.error), variant: "destructive" });
-                          return;
-                        }
-                        if (result.redirected) return;
-                        const { data: { user } } = await supabase.auth.getUser();
-                        if (user) await handlePostAuthRedirect(user.id);
-                      } catch (e: any) {
-                        toast({ title: "Apple Sign-In Failed", description: e.message, variant: "destructive" });
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={handleAppleSignIn}
                     title="Sign in with Apple"
                   >
                     <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
@@ -163,13 +253,13 @@ export default function Login() {
 
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="identifier">Email, Username, or Phone</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="identifier"
+                    type="text"
+                    placeholder="email, username, or phone"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     required
                   />
                 </div>

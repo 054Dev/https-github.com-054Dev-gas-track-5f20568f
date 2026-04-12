@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Phone, Linkedin } from "lucide-react";
+import { Mail, Phone, Linkedin, Globe } from "lucide-react";
 import logo from "@/assets/logo.png";
 import {
   Dialog,
@@ -21,11 +21,9 @@ export default function Index() {
   const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        // Redirect based on role
         checkUserRole(session.user.id);
       }
     });
@@ -47,7 +45,7 @@ export default function Index() {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (roleData?.role === "admin" || roleData?.role === "staff") {
+    if (roleData?.role === "admin" || roleData?.role === "co_admin" || roleData?.role === "staff") {
       navigate("/admin/dashboard");
     } else {
       const { data: customerData } = await supabase
@@ -61,6 +59,8 @@ export default function Index() {
       }
     }
   };
+
+  const whatsappText = encodeURIComponent("Hello, I clicked the link on Fine Gas Management System.");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex flex-col">
@@ -101,9 +101,9 @@ export default function Index() {
       {/* CTA Section */}
       <section className="container py-20">
         <div className="bg-gradient-to-r from-primary to-primary-glow rounded-2xl p-12 text-center text-primary-foreground">
-          <h2 className="text-3xl font-bold mb-4">Ready to streamline your operations?</h2>
+          <h2 className="text-3xl font-bold mb-4">Need a software solution or a website?</h2>
           <p className="text-lg mb-8 opacity-90">
-            Contact our developer to get started with Finegas Supply Management System
+            Contact our developer to discuss your project needs and get started.
           </p>
           <Dialog open={contactOpen} onOpenChange={setContactOpen}>
             <DialogTrigger asChild>
@@ -140,7 +140,7 @@ export default function Index() {
                     <a href="tel:+254702255315" className="text-sm text-muted-foreground hover:text-primary block">
                       +254 702 255 315
                     </a>
-                    <a href="https://web.whatsapp.com/send?phone=254702255315" target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
+                    <a href={`https://wa.me/254702255315?text=${whatsappText}`} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">
                       Chat on WhatsApp
                     </a>
                   </div>
@@ -157,6 +157,21 @@ export default function Index() {
                       className="text-sm text-primary hover:underline"
                     >
                       View Profile
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Globe className="h-5 w-5 text-primary mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Portfolio</p>
+                    <a 
+                      href="https://duncanndegwa.lovable.app/" 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View Portfolio
                     </a>
                   </div>
                 </div>

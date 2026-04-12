@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Package, DollarSign, AlertCircle, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Footer } from "@/components/Footer";
 import { DebtsReportModal } from "@/components/DebtsReportModal";
@@ -91,14 +92,15 @@ export default function AdminDashboard() {
       .select("*", { count: "exact", head: true })
       .gte("delivery_date", today);
 
-    // Calculate today's sales only
-    const { data: deliveriesData } = await supabase
-      .from("deliveries")
-      .select("total_charge, manual_adjustment")
-      .gte("delivery_date", today);
+    // Revenue = only completed payments (not pledges/pending orders)
+    const { data: paymentsData } = await supabase
+      .from("payments")
+      .select("amount_paid")
+      .eq("payment_status", "completed")
+      .gte("paid_at", today);
 
-    const totalRevenue = deliveriesData?.reduce(
-      (sum, d) => sum + Number(d.total_charge) + Number(d.manual_adjustment || 0), 
+    const totalRevenue = paymentsData?.reduce(
+      (sum, p) => sum + Number(p.amount_paid), 
       0
     ) || 0;
 
@@ -124,7 +126,21 @@ export default function AdminDashboard() {
     navigate("/login");
   };
 
-  if (!user) return null;
+  if (!user) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <div className="container py-8 flex-1">
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-64" />
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            {[1,2,3,4].map(i => (
+              <Card key={i}><CardContent className="p-6"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-16" /></CardContent></Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

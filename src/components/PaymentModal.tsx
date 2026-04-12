@@ -9,7 +9,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader2, Smartphone, CheckCircle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface PaymentModalProps {
   open: boolean;
@@ -32,9 +35,25 @@ export function PaymentModal({
   const [stkSent, setStkSent] = useState(false);
   const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  const [paymentType, setPaymentType] = useState<"full" | "partial">("full");
+  const [partialAmount, setPartialAmount] = useState("");
   const { toast } = useToast();
 
+  const effectiveAmount = paymentType === "full" ? amount : parseFloat(partialAmount) || 0;
+
   const handlePayment = async () => {
+    if (paymentType === "partial") {
+      const pa = parseFloat(partialAmount);
+      if (!pa || pa <= 0) {
+        toast({ title: "Invalid Amount", description: "Enter a valid amount to pay.", variant: "destructive" });
+        return;
+      }
+      if (pa > amount) {
+        toast({ title: "Invalid Amount", description: "Partial amount cannot exceed total due.", variant: "destructive" });
+        return;
+      }
+    }
+
     try {
       setProcessing(true);
 
@@ -43,7 +62,7 @@ export function PaymentModal({
           action: "initialize-payment",
           customerId,
           deliveryId,
-          amount,
+          amount: effectiveAmount,
         },
       });
 
@@ -55,7 +74,7 @@ export function PaymentModal({
 
       toast({
         title: "M-Pesa Prompt Sent",
-        description: "Check your phone for the M-Pesa payment prompt and enter your PIN.",
+        description: `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
       });
     } catch (error: any) {
       console.error("Payment error:", error);
@@ -89,6 +108,8 @@ export function PaymentModal({
         onOpenChange(false);
         setStkSent(false);
         setCheckoutRequestId(null);
+        setPaymentType("full");
+        setPartialAmount("");
       } else if (resultCode) {
         toast({
           title: "Payment Pending",
@@ -111,6 +132,8 @@ export function PaymentModal({
     if (!open) {
       setStkSent(false);
       setCheckoutRequestId(null);
+      setPaymentType("full");
+      setPartialAmount("");
     }
     onOpenChange(open);
   };
@@ -121,27 +144,69 @@ export function PaymentModal({
         <DialogHeader>
           <DialogTitle>Pay via M-Pesa</DialogTitle>
           <DialogDescription>
-            Pay KES {amount.toLocaleString()} via Safaricom M-Pesa STK Push
+            Total due: KES {amount.toLocaleString()}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {!stkSent ? (
             <>
+              {/* Payment type selection */}
+              <RadioGroup
+                value={paymentType}
+                onValueChange={(v) => setPaymentType(v as "full" | "partial")}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                  <RadioGroupItem value="full" id="full" />
+                  <Label htmlFor="full" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Pay Full Amount</span>
+                    <span className="block text-sm text-muted-foreground">KES {amount.toLocaleString()}</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                  <RadioGroupItem value="partial" id="partial" />
+                  <Label htmlFor="partial" className="flex-1 cursor-pointer">
+                    <span className="font-medium">Pay Partially</span>
+                    <span className="block text-sm text-muted-foreground">Choose how much to pay now</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {paymentType === "partial" && (
+                <div className="space-y-2">
+                  <Label htmlFor="partialAmount">Amount to Pay (KES)</Label>
+                  <Input
+                    id="partialAmount"
+                    type="number"
+                    step="1"
+                    min="1"
+                    max={amount}
+                    value={partialAmount}
+                    onChange={(e) => setPartialAmount(e.target.value)}
+                    placeholder={`Max: ${amount.toLocaleString()}`}
+                  />
+                  {partialAmount && parseFloat(partialAmount) > 0 && parseFloat(partialAmount) <= amount && (
+                    <p className="text-xs text-muted-foreground">
+                      Remaining after payment: KES {(amount - parseFloat(partialAmount)).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 p-4 border rounded-lg bg-accent/30">
                 <Smartphone className="h-8 w-8 text-primary shrink-0" />
                 <div>
                   <p className="font-medium">M-Pesa STK Push</p>
                   <p className="text-sm text-muted-foreground">
                     A payment prompt will be sent to your registered phone number.
-                    Enter your M-Pesa PIN to complete payment.
                   </p>
                 </div>
               </div>
 
               <Button
                 onClick={handlePayment}
-                disabled={processing}
+                disabled={processing || (paymentType === "partial" && (!partialAmount || parseFloat(partialAmount) <= 0))}
                 className="w-full"
                 size="lg"
               >
@@ -153,7 +218,7 @@ export function PaymentModal({
                 ) : (
                   <>
                     <Smartphone className="mr-2 h-4 w-4" />
-                    Pay KES {amount.toLocaleString()}
+                    Pay KES {effectiveAmount.toLocaleString()}
                   </>
                 )}
               </Button>
@@ -167,7 +232,7 @@ export function PaymentModal({
                 <div>
                   <p className="font-semibold">STK Push Sent!</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Check your phone for the M-Pesa prompt and enter your PIN to complete the payment.
+                    Check your phone for the M-Pesa prompt of KES {effectiveAmount.toLocaleString()} and enter your PIN.
                   </p>
                 </div>
               </div>

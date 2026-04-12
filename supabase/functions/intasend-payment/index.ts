@@ -54,13 +54,16 @@ async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: s
   }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data, error: authError } = await supabaseAdmin.auth.getClaims(token);
-
-  if (authError || !data?.claims) {
-    return { userId: null, error: 'Unauthorized: Invalid token' };
+  
+  try {
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) {
+      return { userId: null, error: 'Unauthorized: Invalid token' };
+    }
+    return { userId: user.id };
+  } catch {
+    return { userId: null, error: 'Unauthorized: Token verification failed' };
   }
-
-  return { userId: data.claims.sub };
 }
 
 // Helper function to verify admin/staff role
@@ -522,10 +525,10 @@ serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("Error:", error);
+    console.error("Error:", error.message, error.stack);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: error.message || "Internal server error", ok: false }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

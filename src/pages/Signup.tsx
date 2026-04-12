@@ -27,7 +27,7 @@ export default function Signup() {
   });
   const [loading, setLoading] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
-  const [usernameDebounce, setUsernameDebounce] = useState<NodeJS.Timeout | null>(null);
+  const [usernameDebounce, setUsernameDebounce] = useState<ReturnType<typeof setTimeout> | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 

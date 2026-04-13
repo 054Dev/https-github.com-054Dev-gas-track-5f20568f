@@ -179,7 +179,14 @@ export default function CustomerDashboard() {
     navigate("/login");
   };
 
-  if (!user || !customer) return null;
+  if (!user || !customer) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <SubNav role="customer" />
+      <div className="container py-8 flex-1"><PageSkeleton variant="dashboard" /></div>
+      <Footer />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

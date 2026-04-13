@@ -122,7 +122,14 @@ export default function AdminBackups() {
     navigate("/login");
   };
 
-  if (!user) return null;
+  if (!user) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <SubNav role="admin" />
+      <div className="container py-8 flex-1"><PageSkeleton variant="list" /></div>
+      <Footer />
+    </div>
+  );
 
   const getBackupType = (label: string) => {
     if (label?.startsWith("Daily auto-backup")) return "daily";

@@ -237,7 +237,14 @@ export default function OrderTracking() {
 
 
 
-  if (loading || !user) return null;
+  if (loading || !user) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <SubNav role="admin" />
+      <div className="container py-8 flex-1"><PageSkeleton variant="list" /></div>
+      <Footer />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

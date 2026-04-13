@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
@@ -224,9 +225,7 @@ export default function DeletionRequests() {
           <AdminNotificationBell />
         </Header>
         <SubNav role={userRole} />
-        <div className="flex-1 flex items-center justify-center">
-          <p>Loading...</p>
-        </div>
+        <div className="container py-8 flex-1"><PageSkeleton variant="list" /></div>
         <Footer role="admin" />
       </div>
     );

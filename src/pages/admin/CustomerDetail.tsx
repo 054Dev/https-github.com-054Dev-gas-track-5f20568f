@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { SubNav } from "@/components/SubNav";
@@ -188,7 +189,14 @@ export default function CustomerDetail() {
     setEditPriceOpen(true);
   };
 
-  if (!user || !customer) return null;
+  if (!user || !customer) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <SubNav role="admin" />
+      <div className="container py-8 flex-1"><PageSkeleton variant="detail" /></div>
+      <Footer />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

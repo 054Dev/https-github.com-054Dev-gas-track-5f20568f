@@ -1,4 +1,8 @@
 import { useState, useEffect } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
+import { Header } from "@/components/Header";
+import { SubNav } from "@/components/SubNav";
+import { Footer } from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -145,8 +149,11 @@ export default function ReceiptSettings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <SubNav role="admin" />
+        <div className="container py-8 flex-1"><PageSkeleton variant="form" /></div>
+        <Footer />
       </div>
     );
   }

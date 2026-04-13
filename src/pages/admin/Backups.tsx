@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";

@@ -322,8 +322,11 @@ export default function Receipts() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header />
+        <SubNav role="customer" />
+        <div className="container py-8 flex-1"><PageSkeleton variant="list" /></div>
+        <Footer />
       </div>
     );
   }

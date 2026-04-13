@@ -224,9 +224,7 @@ export default function DeletionRequests() {
           <AdminNotificationBell />
         </Header>
         <SubNav role={userRole} />
-        <div className="flex-1 flex items-center justify-center">
-          <p>Loading...</p>
-        </div>
+        <div className="container py-8 flex-1"><PageSkeleton variant="list" /></div>
         <Footer role="admin" />
       </div>
     );

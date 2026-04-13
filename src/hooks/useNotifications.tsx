@@ -25,7 +25,7 @@ export const useNotifications = ({ customerId, isAdmin }: UseNotificationsOption
 
   // Types that represent messages FROM customers TO admin
   // Types that represent messages directed TO admin (from customers or system)
-  const CUSTOMER_TO_ADMIN_TYPES = ["contact_request", "new_customer", "new_order"];
+  const CUSTOMER_TO_ADMIN_TYPES = ["contact_request", "new_customer", "new_order", "deletion_request"];
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);

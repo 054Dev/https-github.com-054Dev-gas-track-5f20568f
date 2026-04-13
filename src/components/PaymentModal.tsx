@@ -67,7 +67,7 @@ export function PaymentModal({
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data && !data.ok) throw new Error(data.error || "STK push failed");
 
       setStkSent(true);
       setCheckoutRequestId(data.checkoutRequestId || null);

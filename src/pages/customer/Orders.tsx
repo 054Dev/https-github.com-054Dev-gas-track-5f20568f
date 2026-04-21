@@ -389,6 +389,8 @@ export default function CustomerOrders() {
                       <TableHead className="text-right">Price/kg</TableHead>
                       <TableHead className="text-right">Charge</TableHead>
                       <TableHead className="text-right">Adjustment</TableHead>
+                      <TableHead className="text-right">Paid</TableHead>
+                      <TableHead className="text-right">Due</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Notes</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -413,6 +415,12 @@ export default function CustomerOrders() {
                           {delivery.manual_adjustment !== 0
                             ? `KES ${delivery.manual_adjustment.toFixed(2)}`
                             : "-"}
+                        </TableCell>
+                        <TableCell className="text-right text-success font-medium">
+                          KES {delivery.paid_amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className={`text-right font-medium ${delivery.payment_state === "cleared" ? "text-success" : "text-destructive"}`}>
+                          {delivery.payment_state === "cleared" ? "Cleared" : `KES ${delivery.due_amount.toFixed(2)}`}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -440,19 +448,25 @@ export default function CustomerOrders() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedPaymentDelivery({
-                                  id: delivery.id,
-                                  amount: delivery.total_charge + (delivery.manual_adjustment || 0)
-                                });
-                                setPaymentModalOpen(true);
-                              }}
-                            >
-                              Pay Now
-                            </Button>
+                            {delivery.payment_state === "cleared" ? (
+                              <Badge variant="default" className="bg-success text-success-foreground">Cleared</Badge>
+                            ) : (
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedPaymentDelivery({
+                                    id: delivery.id,
+                                    amount: delivery.due_amount,
+                                  });
+                                  setPaymentModalOpen(true);
+                                }}
+                              >
+                                {delivery.payment_state === "partial"
+                                  ? `Pay KES ${delivery.due_amount.toFixed(0)}`
+                                  : "Pay Now"}
+                              </Button>
+                            )}
                             {delivery.status === "pending" && (
                               <Button
                                 variant="ghost"

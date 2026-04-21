@@ -84,7 +84,8 @@ export default function OrderTracking() {
   const [editingDelivery, setEditingDelivery] = useState<Delivery | null>(null);
   const [editLockStatus, setEditLockStatus] = useState({ isLocked: false, lockReason: "" });
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date } | null>(null);
-  const [filterType, setFilterType] = useState<DateFilterType>("today");
+  const [filterType, setFilterType] = useState<DateFilterType>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "en_route" | "delivered">("all");
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -94,18 +95,9 @@ export default function OrderTracking() {
     checkAuth();
   }, []);
 
-  // Set initial "today" filter on mount
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const end = new Date(today);
-    end.setHours(23, 59, 59, 999);
-    setDateRange({ start: today, end });
-  }, []);
-
   useEffect(() => {
     loadDeliveries();
-  }, [dateRange]);
+  }, [dateRange, statusFilter]);
 
   const checkAuth = async () => {
     const {
@@ -167,6 +159,10 @@ export default function OrderTracking() {
       query = query
         .gte("delivery_date", dateRange.start.toISOString())
         .lte("delivery_date", dateRange.end.toISOString());
+    }
+
+    if (statusFilter !== "all") {
+      query = query.eq("status", statusFilter);
     }
 
     const { data, error } = await query.limit(100);
@@ -266,12 +262,26 @@ export default function OrderTracking() {
         </div>
 
         <div className="mb-6">
-          <ReceiptDateFilter
-            onFilterChange={(range, type) => {
-              setFilterType(type);
-              setDateRange(range);
-            }}
-          />
+          <div className="flex flex-wrap gap-2 items-center">
+            <ReceiptDateFilter
+              defaultFilter="all"
+              onFilterChange={(range, type) => {
+                setFilterType(type);
+                setDateRange(range);
+              }}
+            />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-card z-50">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="en_route">En Route</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Stats Cards */}

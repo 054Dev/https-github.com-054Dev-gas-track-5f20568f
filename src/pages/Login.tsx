@@ -43,11 +43,22 @@ export default function Login() {
     } else {
       const { data: customerData } = await supabase
         .from("customers")
-        .select("id")
+        .select("id, status, deleted_at")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (customerData) {
+        // Block suspended/inactive accounts at the gate
+        if (customerData.status === "suspended" || customerData.status === "inactive" || customerData.deleted_at) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Account Suspended",
+            description: "This account has been suspended. Please contact the administrator.",
+            variant: "destructive",
+          });
+          setPageLoading(false);
+          return;
+        }
         navigate("/customer/dashboard", { replace: true });
       } else {
         toast({

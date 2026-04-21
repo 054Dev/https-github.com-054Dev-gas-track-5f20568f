@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Mail, AlertCircle, Plus, Eye, EyeOff, Copy } from "lucide-react";
+import { Phone, Mail, AlertCircle, Plus, Eye, EyeOff, Copy, Ban, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { generateSecurePassword, validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
+import { PhoneInput, isPhoneTaken } from "@/components/PhoneInput";
+import { Badge } from "@/components/ui/badge";
 
 interface Customer {
   id: string;
@@ -117,27 +119,24 @@ export default function AdminCustomers() {
     navigate(`/admin/customers/${customer.id}`);
   };
 
-  const handleRemoveCustomer = async (customerId: string) => {
+  const handleToggleSuspend = async (customer: Customer) => {
+    const isSuspended = customer.status === "suspended" || customer.status === "inactive";
+    const newStatus = isSuspended ? "active" : "suspended";
     try {
       const { error } = await supabase
         .from("customers")
-        .update({ deleted_at: new Date().toISOString(), status: "inactive" })
-        .eq("id", customerId);
-
+        .update({ status: newStatus })
+        .eq("id", customer.id);
       if (error) throw error;
-
       toast({
-        title: "Success",
-        description: "Customer removed from system",
+        title: isSuspended ? "Customer Reactivated" : "Customer Suspended",
+        description: isSuspended
+          ? `${customer.shop_name} can sign in again.`
+          : `${customer.shop_name} can no longer sign in. Reactivate them anytime.`,
       });
-
       loadCustomers();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 
@@ -170,6 +169,18 @@ export default function AdminCustomers() {
       toast({
         title: "Invalid Email",
         description: emailCheck.message,
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Phone uniqueness check
+    const phoneTaken = await isPhoneTaken(supabase, newCustomer.phone);
+    if (phoneTaken) {
+      toast({
+        title: "Phone Already Registered",
+        description: "This phone number is already linked to another account. Use a different number.",
         variant: "destructive",
       });
       setLoading(false);
@@ -305,9 +316,14 @@ export default function AdminCustomers() {
               <CardHeader>
                 <CardTitle className="flex flex-col sm:flex-row items-start justify-between gap-2">
                   <span className="text-base md:text-lg">{customer.shop_name}</span>
-                  {customer.arrears_balance > 0 && (
-                    <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-warning flex-shrink-0" />
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(customer.status === "suspended" || customer.status === "inactive") && (
+                      <Badge variant="destructive" className="text-[10px] uppercase tracking-wide">Suspended</Badge>
+                    )}
+                    {customer.arrears_balance > 0 && (
+                      <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-warning" />
+                    )}
+                  </div>
                 </CardTitle>
                 <p className="text-xs md:text-sm text-muted-foreground">{customer.in_charge_name}</p>
               </CardHeader>
@@ -334,19 +350,35 @@ export default function AdminCustomers() {
                     Contact Customer
                   </Button>
                   {user.role === "admin" && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Remove ${customer.shop_name} from the system?`)) {
-                          handleRemoveCustomer(customer.id);
-                        }
-                      }}
-                    >
-                      Remove Customer
-                    </Button>
+                    (customer.status === "suspended" || customer.status === "inactive") ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSuspend(customer);
+                        }}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Reactivate Account
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Suspend ${customer.shop_name}? They will not be able to sign in until reactivated.`)) {
+                            handleToggleSuspend(customer);
+                          }
+                        }}
+                      >
+                        <Ban className="h-4 w-4 mr-2" />
+                        Suspend Account
+                      </Button>
+                    )
                   )}
                 </div>
               </CardContent>
@@ -419,13 +451,10 @@ export default function AdminCustomers() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone *</Label>
-                <Input
+                <PhoneInput
                   id="phone"
-                  type="tel"
                   value={newCustomer.phone}
-                  onChange={(e) =>
-                    setNewCustomer({ ...newCustomer, phone: e.target.value })
-                  }
+                  onChange={(v) => setNewCustomer({ ...newCustomer, phone: v })}
                   required
                 />
               </div>

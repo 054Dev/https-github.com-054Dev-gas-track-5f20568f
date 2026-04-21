@@ -19,6 +19,8 @@ interface DateRange {
 
 interface ReceiptDateFilterProps {
   onFilterChange: (range: DateRange | null, filterType: DateFilterType) => void;
+  /** Default selected filter on mount. Defaults to "all". */
+  defaultFilter?: DateFilterType;
 }
 
 interface MonthOption {
@@ -27,8 +29,8 @@ interface MonthOption {
   month: number; // 0-indexed
 }
 
-export function ReceiptDateFilter({ onFilterChange }: ReceiptDateFilterProps) {
-  const [filterType, setFilterType] = useState<DateFilterType>("today");
+export function ReceiptDateFilter({ onFilterChange, defaultFilter = "all" }: ReceiptDateFilterProps) {
+  const [filterType, setFilterType] = useState<DateFilterType>(defaultFilter);
   const [customDate, setCustomDate] = useState<string>("");
   const [availableMonths, setAvailableMonths] = useState<MonthOption[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([]);
@@ -38,6 +40,12 @@ export function ReceiptDateFilter({ onFilterChange }: ReceiptDateFilterProps) {
 
   useEffect(() => {
     loadAvailableDates();
+  }, []);
+
+  // Fire default filter callback on mount so consumers don't have to set it themselves
+  useEffect(() => {
+    handleFilterTypeChange(defaultFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadAvailableDates = async () => {

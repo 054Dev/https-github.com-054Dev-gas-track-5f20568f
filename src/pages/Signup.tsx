@@ -13,6 +13,7 @@ import { validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-ut
 import { lovable } from "@/integrations/lovable/index";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { PhoneInput, isPhoneTaken } from "@/components/PhoneInput";
 
 export default function Signup() {
   const [formData, setFormData] = useState({
@@ -95,6 +96,12 @@ export default function Signup() {
       const { valid, message } = validateCustomerPasswordPolicy(formData.password);
       if (!valid) {
         throw new Error(message);
+      }
+
+      // Enforce globally unique phone
+      const phoneTaken = await isPhoneTaken(supabase, formData.phone);
+      if (phoneTaken) {
+        throw new Error("This phone number is already registered. Please use a different number.");
       }
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -319,12 +326,10 @@ export default function Signup() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number *</Label>
-                  <Input
+                  <PhoneInput
                     id="phone"
-                    type="tel"
-                    placeholder="+254..."
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onChange={(v) => setFormData({ ...formData, phone: v })}
                     required
                   />
                 </div>

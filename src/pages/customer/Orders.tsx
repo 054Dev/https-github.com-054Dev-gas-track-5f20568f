@@ -302,6 +302,20 @@ export default function CustomerOrders() {
                             <span className="font-medium">KES {delivery.manual_adjustment.toFixed(2)}</span>
                           </div>
                         )}
+                        <div className="flex justify-between text-sm border-t pt-1 mt-1">
+                          <span className="text-muted-foreground">Paid:</span>
+                          <span className="font-medium text-success">KES {delivery.paid_amount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {delivery.payment_state === "cleared" ? "Status:" : "Outstanding:"}
+                          </span>
+                          <span className={`font-medium ${delivery.payment_state === "cleared" ? "text-success" : "text-destructive"}`}>
+                            {delivery.payment_state === "cleared"
+                              ? "Cleared"
+                              : `KES ${delivery.due_amount.toFixed(2)}`}
+                          </span>
+                        </div>
                       </div>
 
                       {delivery.notes ? (

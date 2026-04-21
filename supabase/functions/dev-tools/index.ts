@@ -215,14 +215,17 @@ Deno.serve(async (req) => {
       }
 
       case "daily_backup": {
-        // Cleanup: keep only last 7 daily auto-backups
+        // Stack-of-3: keep at most 3 daily auto-backups.
+        // Prune oldest BEFORE inserting the new one so a 4th creation drops the oldest.
         const { data: oldBackups } = await supabaseAdmin
           .from("dev_db_snapshots")
           .select("id, label")
           .like("label", "Daily auto-backup%")
           .order("created_at", { ascending: false });
-        if (oldBackups && oldBackups.length >= 7) {
-          const toDelete = oldBackups.slice(7).map((b: any) => b.id);
+        const MAX_AUTO_BACKUPS = 3;
+        if (oldBackups && oldBackups.length >= MAX_AUTO_BACKUPS) {
+          // Keep the newest (MAX_AUTO_BACKUPS - 1) so that after insert we land on MAX_AUTO_BACKUPS
+          const toDelete = oldBackups.slice(MAX_AUTO_BACKUPS - 1).map((b: any) => b.id);
           if (toDelete.length > 0) {
             await supabaseAdmin.from("dev_db_snapshots").delete().in("id", toDelete);
           }

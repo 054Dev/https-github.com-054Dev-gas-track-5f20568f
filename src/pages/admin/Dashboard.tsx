@@ -26,6 +26,7 @@ export default function AdminDashboard() {
     pendingBalance: 0,
     debtorsCount: 0,
   });
+  const [creditCustomers, setCreditCustomers] = useState<{ id: string; shop_name: string; arrears_balance: number }[]>([]);
   const [hiddenCards, setHiddenCards] = useState<string[]>(() => {
     const saved = localStorage.getItem("adminHiddenCards");
     return saved ? JSON.parse(saved) : [];
@@ -106,11 +107,24 @@ export default function AdminDashboard() {
 
     const { data: arrearsData } = await supabase
       .from("customers")
-      .select("arrears_balance")
+      .select("id, shop_name, arrears_balance")
       .is("deleted_at", null);
 
-    const pendingBalance = arrearsData?.reduce((sum, c) => sum + Number(c.arrears_balance), 0) || 0;
-    const debtorsCount = arrearsData?.filter(c => Number(c.arrears_balance) > 0).length || 0;
+    // Pending balance = only POSITIVE arrears (overpayments don't reduce other customers' debts)
+    const pendingBalance =
+      arrearsData?.reduce((sum, c) => sum + Math.max(Number(c.arrears_balance) || 0, 0), 0) || 0;
+    const debtorsCount = arrearsData?.filter((c) => Number(c.arrears_balance) > 0).length || 0;
+
+    // Customers in credit (overpaid) — show separately under the pending card
+    const credits = (arrearsData || [])
+      .filter((c: any) => Number(c.arrears_balance) < 0)
+      .sort((a: any, b: any) => Number(a.arrears_balance) - Number(b.arrears_balance))
+      .map((c: any) => ({
+        id: c.id,
+        shop_name: c.shop_name,
+        arrears_balance: Number(c.arrears_balance),
+      }));
+    setCreditCustomers(credits);
 
     setStats({
       totalCustomers: customersCount || 0,
@@ -233,7 +247,26 @@ export default function AdminDashboard() {
                 <div className="text-2xl font-bold text-warning">
                   KES {stats.pendingBalance.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">Outstanding arrears</p>
+                <p className="text-xs text-muted-foreground">Outstanding arrears (debtors only)</p>
+                {creditCustomers.length > 0 && (
+                  <div className="mt-3 border-t pt-2 space-y-1 max-h-32 overflow-y-auto">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      Customers in credit
+                    </p>
+                    {creditCustomers.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => navigate(`/admin/customers/${c.id}`)}
+                        className="w-full flex justify-between items-center text-xs hover:bg-muted rounded px-1 py-0.5 transition-colors text-left"
+                      >
+                        <span className="truncate flex-1 mr-2">{c.shop_name}</span>
+                        <span className="font-semibold text-success whitespace-nowrap">
+                          -KES {Math.abs(c.arrears_balance).toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

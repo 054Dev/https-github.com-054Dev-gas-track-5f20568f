@@ -42,6 +42,12 @@ export function ReceiptDateFilter({ onFilterChange, defaultFilter = "all" }: Rec
     loadAvailableDates();
   }, []);
 
+  // Fire default filter callback on mount so consumers don't have to set it themselves
+  useEffect(() => {
+    handleFilterTypeChange(defaultFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const loadAvailableDates = async () => {
     // Get the earliest payment date to determine available months/years
     const { data: earliest } = await supabase

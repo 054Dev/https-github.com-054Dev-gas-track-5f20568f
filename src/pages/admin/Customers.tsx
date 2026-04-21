@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Mail, AlertCircle, Plus, Eye, EyeOff, Copy } from "lucide-react";
+import { Phone, Mail, AlertCircle, Plus, Eye, EyeOff, Copy, Ban, CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { generateSecurePassword, validateCustomerPasswordPolicy, validateEmail } from "@/lib/password-utils";
+import { PhoneInput, isPhoneTaken } from "@/components/PhoneInput";
+import { Badge } from "@/components/ui/badge";
 
 interface Customer {
   id: string;
@@ -117,27 +119,24 @@ export default function AdminCustomers() {
     navigate(`/admin/customers/${customer.id}`);
   };
 
-  const handleRemoveCustomer = async (customerId: string) => {
+  const handleToggleSuspend = async (customer: Customer) => {
+    const isSuspended = customer.status === "suspended" || customer.status === "inactive";
+    const newStatus = isSuspended ? "active" : "suspended";
     try {
       const { error } = await supabase
         .from("customers")
-        .update({ deleted_at: new Date().toISOString(), status: "inactive" })
-        .eq("id", customerId);
-
+        .update({ status: newStatus })
+        .eq("id", customer.id);
       if (error) throw error;
-
       toast({
-        title: "Success",
-        description: "Customer removed from system",
+        title: isSuspended ? "Customer Reactivated" : "Customer Suspended",
+        description: isSuspended
+          ? `${customer.shop_name} can sign in again.`
+          : `${customer.shop_name} can no longer sign in. Reactivate them anytime.`,
       });
-
       loadCustomers();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   };
 

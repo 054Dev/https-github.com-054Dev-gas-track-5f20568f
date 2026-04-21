@@ -62,7 +62,7 @@ interface DeliveryWithPayments extends Delivery {
 
 export default function CustomerOrders() {
   const [user, setUser] = useState<any>(null);
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [deliveries, setDeliveries] = useState<DeliveryWithPayments[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedDeliveryId, setSelectedDeliveryId] = useState<string | null>(null);
@@ -188,7 +188,34 @@ export default function CustomerOrders() {
       .eq("customer_id", customerId)
       .order("delivery_date", { ascending: false });
 
-    if (data) setDeliveries(data);
+    if (!data) return;
+
+    // Fetch payments allocated to these deliveries
+    const ids = data.map((d) => d.id);
+    const { data: payments } = ids.length
+      ? await supabase
+          .from("payments")
+          .select("delivery_id, amount_paid")
+          .eq("payment_status", "completed")
+          .in("delivery_id", ids)
+      : { data: [] as any[] };
+
+    const paidMap: Record<string, number> = {};
+    (payments || []).forEach((p: any) => {
+      if (!p.delivery_id) return;
+      paidMap[p.delivery_id] = (paidMap[p.delivery_id] || 0) + Number(p.amount_paid || 0);
+    });
+
+    const enriched: DeliveryWithPayments[] = data.map((d: any) => {
+      const total = Number(d.total_charge || 0) + Number(d.manual_adjustment || 0);
+      const paid = paidMap[d.id] || 0;
+      const due = Math.max(total - paid, 0);
+      const state: DeliveryWithPayments["payment_state"] =
+        paid <= 0 ? "unpaid" : due <= 0.009 ? "cleared" : "partial";
+      return { ...d, paid_amount: paid, due_amount: due, payment_state: state };
+    });
+
+    setDeliveries(enriched);
   };
 
   const handleLogout = async () => {

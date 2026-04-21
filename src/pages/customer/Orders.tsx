@@ -238,7 +238,7 @@ export default function CustomerOrders() {
         <NotificationBell notifications={notifications} unreadCount={unreadCount} onMarkAsRead={markAsRead} onMarkAllAsRead={markAllAsRead} notificationsPage="/customer/notifications" />
       </Header>
       <SubNav role={user.role} />
-      <main className="container mx-auto p-6 flex-1">
+      <main className="container mx-auto p-6 flex-1 pb-32">
         <div className="mb-6">
           <BackButton />
         </div>
@@ -495,6 +495,39 @@ export default function CustomerOrders() {
           {customerId && <PaymentHistory customerId={customerId} isAdmin={false} />}
         </div>
       </main>
+
+      {/* Static totals footer — sticks above main Footer, reflects current deliveries list */}
+      {deliveries.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+          <div className="container mx-auto px-4 py-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Orders</p>
+                <p className="text-base md:text-lg font-bold">{deliveries.length}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Cost</p>
+                <p className="text-base md:text-lg font-bold">
+                  KES {deliveries.reduce((s, d) => s + Number(d.total_charge || 0) + Number(d.manual_adjustment || 0), 0).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Paid</p>
+                <p className="text-base md:text-lg font-bold text-success">
+                  KES {deliveries.reduce((s, d) => s + d.paid_amount, 0).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Outstanding</p>
+                <p className="text-base md:text-lg font-bold text-destructive">
+                  KES {deliveries.reduce((s, d) => s + d.due_amount, 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
 
       {/* Payment Modal */}

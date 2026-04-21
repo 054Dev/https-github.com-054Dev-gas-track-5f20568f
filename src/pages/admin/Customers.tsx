@@ -451,13 +451,10 @@ export default function AdminCustomers() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone *</Label>
-                <Input
+                <PhoneInput
                   id="phone"
-                  type="tel"
                   value={newCustomer.phone}
-                  onChange={(e) =>
-                    setNewCustomer({ ...newCustomer, phone: e.target.value })
-                  }
+                  onChange={(v) => setNewCustomer({ ...newCustomer, phone: v })}
                   required
                 />
               </div>

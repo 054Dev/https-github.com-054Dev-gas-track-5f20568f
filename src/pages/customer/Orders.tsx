@@ -54,6 +54,12 @@ interface Delivery {
   price_per_kg_at_time: number;
 }
 
+interface DeliveryWithPayments extends Delivery {
+  paid_amount: number;
+  due_amount: number;
+  payment_state: "cleared" | "partial" | "unpaid";
+}
+
 export default function CustomerOrders() {
   const [user, setUser] = useState<any>(null);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);

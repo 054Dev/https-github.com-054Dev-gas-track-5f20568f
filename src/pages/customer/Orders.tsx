@@ -326,20 +326,28 @@ export default function CustomerOrders() {
                       )}
 
                       <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => {
-                            setSelectedPaymentDelivery({
-                              id: delivery.id,
-                              amount: delivery.total_charge + (delivery.manual_adjustment || 0)
-                            });
-                            setPaymentModalOpen(true);
-                          }}
-                        >
-                          Pay Now
-                        </Button>
+                        {delivery.payment_state === "cleared" ? (
+                          <Badge variant="default" className="flex-1 justify-center py-2 bg-success text-success-foreground">
+                            Cleared
+                          </Badge>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedPaymentDelivery({
+                                id: delivery.id,
+                                amount: delivery.due_amount,
+                              });
+                              setPaymentModalOpen(true);
+                            }}
+                          >
+                            {delivery.payment_state === "partial"
+                              ? `Pay KES ${delivery.due_amount.toFixed(0)}`
+                              : "Pay Now"}
+                          </Button>
+                        )}
                         {delivery.status === "pending" && (
                           <Button
                             variant="ghost"

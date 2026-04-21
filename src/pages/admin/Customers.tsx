@@ -175,6 +175,18 @@ export default function AdminCustomers() {
       return;
     }
 
+    // Phone uniqueness check
+    const phoneTaken = await isPhoneTaken(supabase, newCustomer.phone);
+    if (phoneTaken) {
+      toast({
+        title: "Phone Already Registered",
+        description: "This phone number is already linked to another account. Use a different number.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     // Basic password validation for customers (no strength requirement)
     const { valid, message } = validateCustomerPasswordPolicy(newCustomer.password);
 

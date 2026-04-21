@@ -304,9 +304,14 @@ export default function AdminCustomers() {
               <CardHeader>
                 <CardTitle className="flex flex-col sm:flex-row items-start justify-between gap-2">
                   <span className="text-base md:text-lg">{customer.shop_name}</span>
-                  {customer.arrears_balance > 0 && (
-                    <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-warning flex-shrink-0" />
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {(customer.status === "suspended" || customer.status === "inactive") && (
+                      <Badge variant="destructive" className="text-[10px] uppercase tracking-wide">Suspended</Badge>
+                    )}
+                    {customer.arrears_balance > 0 && (
+                      <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-warning" />
+                    )}
+                  </div>
                 </CardTitle>
                 <p className="text-xs md:text-sm text-muted-foreground">{customer.in_charge_name}</p>
               </CardHeader>
@@ -333,19 +338,35 @@ export default function AdminCustomers() {
                     Contact Customer
                   </Button>
                   {user.role === "admin" && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Remove ${customer.shop_name} from the system?`)) {
-                          handleRemoveCustomer(customer.id);
-                        }
-                      }}
-                    >
-                      Remove Customer
-                    </Button>
+                    (customer.status === "suspended" || customer.status === "inactive") ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSuspend(customer);
+                        }}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Reactivate Account
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="w-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Suspend ${customer.shop_name}? They will not be able to sign in until reactivated.`)) {
+                            handleToggleSuspend(customer);
+                          }
+                        }}
+                      >
+                        <Ban className="h-4 w-4 mr-2" />
+                        Suspend Account
+                      </Button>
+                    )
                   )}
                 </div>
               </CardContent>

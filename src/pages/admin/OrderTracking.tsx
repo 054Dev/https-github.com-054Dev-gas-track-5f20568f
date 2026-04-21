@@ -262,12 +262,26 @@ export default function OrderTracking() {
         </div>
 
         <div className="mb-6">
-          <ReceiptDateFilter
-            onFilterChange={(range, type) => {
-              setFilterType(type);
-              setDateRange(range);
-            }}
-          />
+          <div className="flex flex-wrap gap-2 items-center">
+            <ReceiptDateFilter
+              defaultFilter="all"
+              onFilterChange={(range, type) => {
+                setFilterType(type);
+                setDateRange(range);
+              }}
+            />
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-card z-50">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="en_route">En Route</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Stats Cards */}

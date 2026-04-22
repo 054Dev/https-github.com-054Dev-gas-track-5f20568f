@@ -113,14 +113,31 @@ serve(async (req) => {
         const amount = getMeta("Amount");
         const mpesaRef = getMeta("MpesaReceiptNumber");
         const phone = getMeta("PhoneNumber")?.toString();
+        const accountRef = (callback.AccountReference || "").toString();
 
-        if (phone) {
-          const phoneVariants = [`+${phone}`, phone, `0${phone?.slice(3)}`];
-          const { data: customerMatch } = await supabaseAdmin
+        // Resolve customer: prefer AccountReference (CUST-<customerId>) so that
+        // phone-number changes don't break receipt linkage. Fall back to phone.
+        let customerMatch: any = null;
+
+        if (accountRef.startsWith("CUST-")) {
+          const cid = accountRef.slice(5);
+          const { data } = await supabaseAdmin
             .from("customers")
-            .select("id, arrears_balance, email, in_charge_name")
+            .select("id, arrears_balance, email, in_charge_name, phone")
+            .eq("id", cid)
+            .maybeSingle();
+          customerMatch = data;
+        }
+
+        if (!customerMatch && phone) {
+          const phoneVariants = [`+${phone}`, phone, `0${phone?.slice(3)}`];
+          const { data } = await supabaseAdmin
+            .from("customers")
+            .select("id, arrears_balance, email, in_charge_name, phone")
             .or(phoneVariants.map(p => `phone.eq.${p}`).join(","))
             .maybeSingle();
+          customerMatch = data;
+        }
 
           if (customerMatch) {
             const { data: payment } = await supabaseAdmin
@@ -155,8 +172,32 @@ serve(async (req) => {
               } catch (e) { console.error("Receipt email error:", e); }
             }
             console.log(`Daraja payment recorded: KES ${amount}, ref ${mpesaRef}`);
+
+            // ── DEV MODE AUTO-REFUND ───────────────────────────
+            // Record a synthetic refund payment that offsets the just-paid
+            // amount and restores the arrears, so testing doesn't drain
+            // a real customer balance. This block must be removed in prod.
+            if (DEV_MODE_FIXED_AMOUNT && payment) {
+              try {
+                await supabaseAdmin.from("payments").insert({
+                  customer_id: customerMatch.id,
+                  amount_paid: -Math.abs(parseFloat(amount)),
+                  method: "refund",
+                  payment_provider: "daraja",
+                  payment_status: "completed",
+                  reference: `DEV-REFUND-${callback.CheckoutRequestID}`,
+                  transaction_id: `REFUND-${mpesaRef}`,
+                });
+                await supabaseAdmin
+                  .from("customers")
+                  .update({ arrears_balance: newArrears + Math.abs(parseFloat(amount)) })
+                  .eq("id", customerMatch.id);
+                console.log(`DEV auto-refund issued for ${mpesaRef}`);
+              } catch (e) {
+                console.error("DEV auto-refund failed:", e);
+              }
+            }
           }
-        }
       }
 
       return respond(true, { message: "Callback processed" });

@@ -14,6 +14,13 @@ const BUSINESS_SHORT_CODE = "174379";
 // Standard Daraja sandbox passkey (publicly known for testing)
 const SANDBOX_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
 
+// ─── DEVELOPMENT MODE ────────────────────────────────────────────
+// During the development stage, every STK push is forced to KES 2 and
+// the amount is automatically refunded shortly after the receipt is
+// generated. SET TO false BEFORE GOING TO PRODUCTION.
+const DEV_MODE_FIXED_AMOUNT = true;
+const DEV_FIXED_AMOUNT_KES = 2;
+
 function respond(ok: boolean, payload: Record<string, any>, status = 200): Response {
   return new Response(
     JSON.stringify({ ok, ...payload }),

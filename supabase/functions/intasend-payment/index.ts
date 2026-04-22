@@ -113,20 +113,30 @@ serve(async (req) => {
         const amount = getMeta("Amount");
         const mpesaRef = getMeta("MpesaReceiptNumber");
         const phone = getMeta("PhoneNumber")?.toString();
-        const accountRef = (callback.AccountReference || "").toString();
+        const checkoutRequestId = (callback.CheckoutRequestID || "").toString();
 
-        // Resolve customer: prefer AccountReference (CUST-<customerId>) so that
-        // phone-number changes don't break receipt linkage. Fall back to phone.
+        // Resolve customer: prefer the pending payment row created at STK init
+        // (keyed by CheckoutRequestID) so phone changes don't break linkage.
+        // Fall back to phone-number match for legacy/unmatched cases.
         let customerMatch: any = null;
+        let pendingPayment: any = null;
 
-        if (accountRef.startsWith("CUST-")) {
-          const cid = accountRef.slice(5);
-          const { data } = await supabaseAdmin
-            .from("customers")
-            .select("id, arrears_balance, email, in_charge_name, phone")
-            .eq("id", cid)
+        if (checkoutRequestId) {
+          const { data: pp } = await supabaseAdmin
+            .from("payments")
+            .select("id, customer_id, delivery_id")
+            .eq("reference", checkoutRequestId)
+            .eq("payment_status", "pending")
             .maybeSingle();
-          customerMatch = data;
+          if (pp) {
+            pendingPayment = pp;
+            const { data: c } = await supabaseAdmin
+              .from("customers")
+              .select("id, arrears_balance, email, in_charge_name, phone")
+              .eq("id", pp.customer_id)
+              .maybeSingle();
+            customerMatch = c;
+          }
         }
 
         if (!customerMatch && phone) {
@@ -140,18 +150,35 @@ serve(async (req) => {
         }
 
           if (customerMatch) {
-            const { data: payment } = await supabaseAdmin
-              .from("payments")
-              .insert({
-                customer_id: customerMatch.id,
-                amount_paid: parseFloat(amount),
-                method: "mpesa",
-                payment_provider: "daraja",
-                payment_status: "completed",
-                transaction_id: mpesaRef,
-                reference: callback.CheckoutRequestID,
-              })
-              .select().single();
+            // If a pending row exists, update it; otherwise insert fresh.
+            let payment: any = null;
+            if (pendingPayment) {
+              const { data: updated } = await supabaseAdmin
+                .from("payments")
+                .update({
+                  amount_paid: parseFloat(amount),
+                  payment_status: "completed",
+                  transaction_id: mpesaRef,
+                  paid_at: new Date().toISOString(),
+                })
+                .eq("id", pendingPayment.id)
+                .select().single();
+              payment = updated;
+            } else {
+              const { data: inserted } = await supabaseAdmin
+                .from("payments")
+                .insert({
+                  customer_id: customerMatch.id,
+                  amount_paid: parseFloat(amount),
+                  method: "mpesa",
+                  payment_provider: "daraja",
+                  payment_status: "completed",
+                  transaction_id: mpesaRef,
+                  reference: checkoutRequestId,
+                })
+                .select().single();
+              payment = inserted;
+            }
 
             const newArrears = (customerMatch.arrears_balance || 0) - parseFloat(amount);
             await supabaseAdmin.from("customers").update({ arrears_balance: newArrears }).eq("id", customerMatch.id);

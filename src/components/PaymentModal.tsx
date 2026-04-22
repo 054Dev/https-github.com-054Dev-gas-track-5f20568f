@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Smartphone, CheckCircle } from "lucide-react";
+import { Loader2, Smartphone, CheckCircle, Info } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface PaymentModalProps {
@@ -32,9 +32,6 @@ export function PaymentModal({
   onSuccess,
 }: PaymentModalProps) {
   const [processing, setProcessing] = useState(false);
-  const [stkSent, setStkSent] = useState(false);
-  const [checkoutRequestId, setCheckoutRequestId] = useState<string | null>(null);
-  const [checking, setChecking] = useState(false);
   const [paymentType, setPaymentType] = useState<"full" | "partial">("full");
   const [partialAmount, setPartialAmount] = useState("");
   const { toast } = useToast();
@@ -69,13 +66,19 @@ export function PaymentModal({
       if (error) throw error;
       if (data && !data.ok) throw new Error(data.error || "STK push failed");
 
-      setStkSent(true);
-      setCheckoutRequestId(data.checkoutRequestId || null);
-
       toast({
         title: "M-Pesa Prompt Sent",
-        description: `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
+        description: data?.devMode
+          ? `DEV MODE: a prompt of KES ${data.chargedAmount} was sent. The amount will be auto-refunded once the receipt is generated.`
+          : `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
       });
+
+      // Auto-close — no manual verification needed; receipts are sent
+      // automatically when the Daraja callback completes the payment.
+      onSuccess();
+      onOpenChange(false);
+      setPaymentType("full");
+      setPartialAmount("");
     } catch (error: any) {
       console.error("Payment error:", error);
       toast({
@@ -88,50 +91,8 @@ export function PaymentModal({
     }
   };
 
-  const checkPaymentStatus = async () => {
-    if (!checkoutRequestId) return;
-    setChecking(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("intasend-payment", {
-        body: {
-          action: "query-payment",
-          checkoutRequestId,
-        },
-      });
-
-      if (error) throw error;
-
-      const resultCode = data?.data?.ResultCode;
-      if (resultCode === "0") {
-        toast({ title: "Payment Confirmed", description: "Your M-Pesa payment was successful!" });
-        onSuccess();
-        onOpenChange(false);
-        setStkSent(false);
-        setCheckoutRequestId(null);
-        setPaymentType("full");
-        setPartialAmount("");
-      } else if (resultCode) {
-        toast({
-          title: "Payment Pending",
-          description: "Payment not yet confirmed. Please complete the M-Pesa prompt on your phone.",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({
-        title: "Status Check Failed",
-        description: "Could not verify payment. Try again shortly.",
-        variant: "destructive",
-      });
-    } finally {
-      setChecking(false);
-    }
-  };
-
   const handleClose = (open: boolean) => {
     if (!open) {
-      setStkSent(false);
-      setCheckoutRequestId(null);
       setPaymentType("full");
       setPartialAmount("");
     }
@@ -149,8 +110,6 @@ export function PaymentModal({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {!stkSent ? (
-            <>
               {/* Payment type selection */}
               <RadioGroup
                 value={paymentType}
@@ -204,6 +163,14 @@ export function PaymentModal({
                 </div>
               </div>
 
+              <div className="flex items-start gap-2 p-3 border border-dashed rounded-md text-xs text-muted-foreground">
+                <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  Development mode is active: every prompt is a fixed KES 2 token
+                  payment that is automatically refunded once the receipt is generated.
+                </span>
+              </div>
+
               <Button
                 onClick={handlePayment}
                 disabled={processing || (paymentType === "partial" && (!partialAmount || parseFloat(partialAmount) <= 0))}
@@ -222,48 +189,6 @@ export function PaymentModal({
                   </>
                 )}
               </Button>
-            </>
-          ) : (
-            <>
-              <div className="text-center space-y-3">
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <CheckCircle className="h-8 w-8 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold">STK Push Sent!</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Check your phone for the M-Pesa prompt of KES {effectiveAmount.toLocaleString()} and enter your PIN.
-                  </p>
-                </div>
-              </div>
-
-              <Button
-                onClick={checkPaymentStatus}
-                disabled={checking}
-                variant="outline"
-                className="w-full"
-              >
-                {checking ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  "I've completed payment — verify"
-                )}
-              </Button>
-
-              <Button
-                onClick={handlePayment}
-                disabled={processing}
-                variant="ghost"
-                className="w-full"
-                size="sm"
-              >
-                {processing ? "Resending..." : "Resend M-Pesa prompt"}
-              </Button>
-            </>
-          )}
         </div>
       </DialogContent>
     </Dialog>

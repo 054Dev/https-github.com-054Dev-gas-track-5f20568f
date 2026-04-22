@@ -553,6 +553,7 @@ export default function OrderTracking() {
             onOpenChange={setCashPaymentOpen}
             customerId={selectedDelivery.customer_id}
             deliveryId={selectedDelivery.id}
+            suggestedAmount={selectedDelivery.total_charge + (selectedDelivery.manual_adjustment || 0)}
             onSuccess={loadDeliveries}
           />
         )}

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordInput } from "@/components/PasswordInput";
 import { Package, Receipt, DollarSign, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentModal } from "@/components/PaymentModal";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ export default function CustomerDashboard() {
   const [user, setUser] = useState<any>(null);
   const [customer, setCustomer] = useState<any>(null);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showPayDialog, setShowPayDialog] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [stats, setStats] = useState({
@@ -220,14 +222,25 @@ export default function CustomerDashboard() {
           </Card>
 
           {stats.pendingBalance > 0 && (
-            <Card className="bg-warning/10 border-warning/20">
+            <Card
+              className="bg-warning/10 border-warning/20 cursor-pointer hover:bg-warning/15 transition-colors"
+              onClick={() => setShowPayDialog(true)}
+            >
               <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-8 w-8 text-warning" />
-                  <div>
-                    <h3 className="font-semibold text-warning">Pending Balance</h3>
-                    <p className="text-sm text-muted-foreground">
-                      You have an outstanding balance of KES {stats.pendingBalance.toLocaleString()}. Please clear your balance soon.
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-8 w-8 text-warning" />
+                    <div>
+                      <h3 className="font-semibold text-warning">Pending Balance</h3>
+                      <p className="text-sm text-muted-foreground">
+                        You have an outstanding balance. Tap to clear it now.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Outstanding</p>
+                    <p className="text-2xl md:text-3xl font-bold text-warning">
+                      KES {stats.pendingBalance.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -386,6 +399,17 @@ export default function CustomerDashboard() {
         </DialogContent>
       </Dialog>
       <Footer />
+
+      {customer && stats.pendingBalance > 0 && (
+        <PaymentModal
+          open={showPayDialog}
+          onOpenChange={setShowPayDialog}
+          customerId={customer.id}
+          deliveryId=""
+          amount={stats.pendingBalance}
+          onSuccess={() => loadStats(customer.id)}
+        />
+      )}
     </div>
   );
 }

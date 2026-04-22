@@ -111,3 +111,39 @@ export async function isPhoneTaken(
 
   return customerHit || profileHit;
 }
+
+/** Returns true if the username already belongs to another account. */
+export async function isUsernameTaken(
+  supabaseClient: any,
+  username: string,
+  excludeUserId?: string,
+): Promise<boolean> {
+  const u = (username || "").trim();
+  if (!u) return false;
+
+  const [{ data: profiles }, { data: customers }] = await Promise.all([
+    supabaseClient.from("profiles").select("id").eq("username", u).limit(5),
+    supabaseClient.from("customers").select("user_id").eq("username", u).is("deleted_at", null).limit(5),
+  ]);
+
+  const profileHit = (profiles || []).some((p: any) => !excludeUserId || p.id !== excludeUserId);
+  const customerHit = (customers || []).some((c: any) => !excludeUserId || c.user_id !== excludeUserId);
+  return profileHit || customerHit;
+}
+
+/** Returns true if the email already belongs to another customer record. */
+export async function isEmailTaken(
+  supabaseClient: any,
+  email: string,
+  excludeUserId?: string,
+): Promise<boolean> {
+  const e = (email || "").trim().toLowerCase();
+  if (!e) return false;
+  const { data } = await supabaseClient
+    .from("customers")
+    .select("user_id")
+    .ilike("email", e)
+    .is("deleted_at", null)
+    .limit(5);
+  return (data || []).some((c: any) => !excludeUserId || c.user_id !== excludeUserId);
+}

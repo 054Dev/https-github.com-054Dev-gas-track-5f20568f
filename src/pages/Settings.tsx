@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { validateAdminPasswordPolicy, validateCustomerPasswordPolicy } from "@/lib/password-utils";
+import { PhoneInput, isPhoneTaken, isUsernameTaken, isEmailTaken } from "@/components/PhoneInput";
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);
@@ -182,6 +183,20 @@ export default function Settings() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
+
+      // Enforce uniqueness for fields that changed
+      if (phone && phone !== originalValues.phone) {
+        const taken = await isPhoneTaken(supabase, phone, user.id);
+        if (taken) {
+          throw new Error("This phone number is already used by another account.");
+        }
+      }
+      if (username && username !== originalValues.username) {
+        const taken = await isUsernameTaken(supabase, username, user.id);
+        if (taken) {
+          throw new Error("This username is already taken. Please choose another.");
+        }
+      }
 
       // Update profile
       const { error: profileError } = await supabase
@@ -358,11 +373,10 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
+                    <PhoneInput
                       id="phone"
-                      type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={setPhone}
                     />
                   </div>
                 </div>
@@ -493,6 +507,14 @@ export default function Settings() {
                       return;
                     }
                     try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (user) {
+                        const taken = await isEmailTaken(supabase, newEmail, user.id);
+                        if (taken) {
+                          toast({ title: "Email Unavailable", description: "This email is already used by another account.", variant: "destructive" });
+                          return;
+                        }
+                      }
                       const { error } = await supabase.auth.updateUser({ email: newEmail });
                       if (error) throw error;
 

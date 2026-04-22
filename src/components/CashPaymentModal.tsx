@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, DollarSign } from "lucide-react";
+import { PaymentModal } from "./PaymentModal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CashPaymentModalProps {
   open: boolean;
@@ -19,6 +21,8 @@ interface CashPaymentModalProps {
   customerId: string;
   deliveryId?: string;
   onSuccess: () => void;
+  /** Default amount to suggest when prompting STK push (e.g. order total). */
+  suggestedAmount?: number;
 }
 
 export function CashPaymentModal({
@@ -27,9 +31,11 @@ export function CashPaymentModal({
   customerId,
   deliveryId,
   onSuccess,
+  suggestedAmount,
 }: CashPaymentModalProps) {
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [stkOpen, setStkOpen] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,13 +93,20 @@ export function CashPaymentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Record Cash Payment</DialogTitle>
+          <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
-            Enter the amount received in cash from the customer
+            Record cash received or send the customer an M-Pesa prompt
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <Tabs defaultValue="cash" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="cash">Cash</TabsTrigger>
+            <TabsTrigger value="stk">M-Pesa Prompt</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cash">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (KES)</Label>
             <Input
@@ -126,8 +139,40 @@ export function CashPaymentModal({
               </>
             )}
           </Button>
-        </form>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="stk">
+            <div className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">
+                Send the customer an M-Pesa STK push for this {deliveryId ? "order" : "outstanding balance"}.
+                In development mode the prompt is a fixed KES 2 that is auto-refunded.
+              </p>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => {
+                  setStkOpen(true);
+                  onOpenChange(false);
+                }}
+              >
+                Send M-Pesa Prompt
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
+
+      {stkOpen && (
+        <PaymentModal
+          open={stkOpen}
+          onOpenChange={setStkOpen}
+          customerId={customerId}
+          deliveryId={deliveryId || ""}
+          amount={suggestedAmount && suggestedAmount > 0 ? suggestedAmount : 0}
+          onSuccess={() => { onSuccess(); setStkOpen(false); }}
+        />
+      )}
     </Dialog>
   );
 }

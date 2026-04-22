@@ -507,6 +507,14 @@ export default function Settings() {
                       return;
                     }
                     try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      if (user) {
+                        const taken = await isEmailTaken(supabase, newEmail, user.id);
+                        if (taken) {
+                          toast({ title: "Email Unavailable", description: "This email is already used by another account.", variant: "destructive" });
+                          return;
+                        }
+                      }
                       const { error } = await supabase.auth.updateUser({ email: newEmail });
                       if (error) throw error;
 

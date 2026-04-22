@@ -373,11 +373,10 @@ export default function Settings() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input
+                    <PhoneInput
                       id="phone"
-                      type="tel"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={setPhone}
                     />
                   </div>
                 </div>

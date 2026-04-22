@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { validateAdminPasswordPolicy, validateCustomerPasswordPolicy } from "@/lib/password-utils";
+import { PhoneInput, isPhoneTaken, isUsernameTaken, isEmailTaken } from "@/components/PhoneInput";
 
 export default function Settings() {
   const [loading, setLoading] = useState(false);

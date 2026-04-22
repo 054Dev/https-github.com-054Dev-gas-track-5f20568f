@@ -184,6 +184,20 @@ export default function Settings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Enforce uniqueness for fields that changed
+      if (phone && phone !== originalValues.phone) {
+        const taken = await isPhoneTaken(supabase, phone, user.id);
+        if (taken) {
+          throw new Error("This phone number is already used by another account.");
+        }
+      }
+      if (username && username !== originalValues.username) {
+        const taken = await isUsernameTaken(supabase, username, user.id);
+        if (taken) {
+          throw new Error("This username is already taken. Please choose another.");
+        }
+      }
+
       // Update profile
       const { error: profileError } = await supabase
         .from("profiles")

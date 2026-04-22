@@ -271,6 +271,23 @@ serve(async (req) => {
         });
       }
 
+      // Persist a pending payment row keyed by CheckoutRequestID.
+      // The callback will UPDATE this row, ensuring receipt linkage even if
+      // the customer later changes their phone number.
+      try {
+        await supabaseAdmin.from("payments").insert({
+          customer_id: customerId,
+          delivery_id: deliveryId || null,
+          amount_paid: 0,
+          method: "mpesa",
+          payment_provider: "daraja",
+          payment_status: "pending",
+          reference: stkData.CheckoutRequestID,
+        });
+      } catch (e) {
+        console.error("Failed to persist pending payment:", e);
+      }
+
       return respond(true, {
         message: "STK push sent. Check your phone for the M-Pesa prompt.",
         checkoutRequestId: stkData.CheckoutRequestID,

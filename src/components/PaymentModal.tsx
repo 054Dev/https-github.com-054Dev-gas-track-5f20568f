@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Smartphone, CheckCircle, Info } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface PaymentModalProps {
@@ -68,9 +68,7 @@ export function PaymentModal({
 
       toast({
         title: "M-Pesa Prompt Sent",
-        description: data?.devMode
-          ? `DEV MODE: a prompt of KES ${data.chargedAmount} was sent. The amount will be auto-refunded once the receipt is generated.`
-          : `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
+        description: `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
       });
 
       // Auto-close — no manual verification needed; receipts are sent
@@ -161,14 +159,6 @@ export function PaymentModal({
                     A payment prompt will be sent to your registered phone number.
                   </p>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-2 p-3 border border-dashed rounded-md text-xs text-muted-foreground">
-                <Info className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>
-                  Development mode is active: every prompt is a fixed KES 2 token
-                  payment that is automatically refunded once the receipt is generated.
-                </span>
               </div>
 
               <Button

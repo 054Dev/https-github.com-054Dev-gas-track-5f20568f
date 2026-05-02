@@ -14,13 +14,6 @@ const BUSINESS_SHORT_CODE = "174379";
 // Standard Daraja sandbox passkey (publicly known for testing)
 const SANDBOX_PASSKEY = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
 
-// ─── DEVELOPMENT MODE ────────────────────────────────────────────
-// During the development stage, every STK push is forced to KES 2 and
-// the amount is automatically refunded shortly after the receipt is
-// generated. SET TO false BEFORE GOING TO PRODUCTION.
-const DEV_MODE_FIXED_AMOUNT = true;
-const DEV_FIXED_AMOUNT_KES = 2;
-
 function respond(ok: boolean, payload: Record<string, any>, status = 200): Response {
   return new Response(
     JSON.stringify({ ok, ...payload }),
@@ -199,31 +192,6 @@ serve(async (req) => {
               } catch (e) { console.error("Receipt email error:", e); }
             }
             console.log(`Daraja payment recorded: KES ${amount}, ref ${mpesaRef}`);
-
-            // ── DEV MODE AUTO-REFUND ───────────────────────────
-            // Record a synthetic refund payment that offsets the just-paid
-            // amount and restores the arrears, so testing doesn't drain
-            // a real customer balance. This block must be removed in prod.
-            if (DEV_MODE_FIXED_AMOUNT && payment) {
-              try {
-                await supabaseAdmin.from("payments").insert({
-                  customer_id: customerMatch.id,
-                  amount_paid: -Math.abs(parseFloat(amount)),
-                  method: "refund",
-                  payment_provider: "daraja",
-                  payment_status: "completed",
-                  reference: `DEV-REFUND-${callback.CheckoutRequestID}`,
-                  transaction_id: `REFUND-${mpesaRef}`,
-                });
-                await supabaseAdmin
-                  .from("customers")
-                  .update({ arrears_balance: newArrears + Math.abs(parseFloat(amount)) })
-                  .eq("id", customerMatch.id);
-                console.log(`DEV auto-refund issued for ${mpesaRef}`);
-              } catch (e) {
-                console.error("DEV auto-refund failed:", e);
-              }
-            }
           }
       }
 
@@ -260,10 +228,7 @@ serve(async (req) => {
       }
 
       const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/intasend-payment`;
-
-      // DEV MODE: every prompt is a fixed token amount (KES 2) that is
-      // automatically refunded after the receipt is generated. Disable in prod.
-      const chargeAmount = DEV_MODE_FIXED_AMOUNT ? DEV_FIXED_AMOUNT_KES : Math.ceil(amount);
+      const chargeAmount = Math.ceil(amount);
 
       const stkPayload = {
         BusinessShortCode: BUSINESS_SHORT_CODE,
@@ -319,7 +284,6 @@ serve(async (req) => {
         message: "STK push sent. Check your phone for the M-Pesa prompt.",
         checkoutRequestId: stkData.CheckoutRequestID,
         merchantRequestId: stkData.MerchantRequestID,
-        devMode: DEV_MODE_FIXED_AMOUNT,
         chargedAmount: chargeAmount,
         intendedAmount: amount,
       });

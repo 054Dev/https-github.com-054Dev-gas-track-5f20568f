@@ -228,10 +228,7 @@ serve(async (req) => {
       }
 
       const callbackUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/intasend-payment`;
-
-      // DEV MODE: every prompt is a fixed token amount (KES 2) that is
-      // automatically refunded after the receipt is generated. Disable in prod.
-      const chargeAmount = DEV_MODE_FIXED_AMOUNT ? DEV_FIXED_AMOUNT_KES : Math.ceil(amount);
+      const chargeAmount = Math.ceil(amount);
 
       const stkPayload = {
         BusinessShortCode: BUSINESS_SHORT_CODE,
@@ -287,7 +284,6 @@ serve(async (req) => {
         message: "STK push sent. Check your phone for the M-Pesa prompt.",
         checkoutRequestId: stkData.CheckoutRequestID,
         merchantRequestId: stkData.MerchantRequestID,
-        devMode: DEV_MODE_FIXED_AMOUNT,
         chargedAmount: chargeAmount,
         intendedAmount: amount,
       });

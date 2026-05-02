@@ -146,7 +146,6 @@ export function CashPaymentModal({
             <div className="space-y-4 pt-2">
               <p className="text-sm text-muted-foreground">
                 Send the customer an M-Pesa STK push for this {deliveryId ? "order" : "outstanding balance"}.
-                In development mode the prompt is a fixed KES 2 that is auto-refunded.
               </p>
               <Button
                 className="w-full"

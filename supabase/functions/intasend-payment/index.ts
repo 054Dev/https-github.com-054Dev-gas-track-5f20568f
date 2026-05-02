@@ -192,31 +192,6 @@ serve(async (req) => {
               } catch (e) { console.error("Receipt email error:", e); }
             }
             console.log(`Daraja payment recorded: KES ${amount}, ref ${mpesaRef}`);
-
-            // ── DEV MODE AUTO-REFUND ───────────────────────────
-            // Record a synthetic refund payment that offsets the just-paid
-            // amount and restores the arrears, so testing doesn't drain
-            // a real customer balance. This block must be removed in prod.
-            if (DEV_MODE_FIXED_AMOUNT && payment) {
-              try {
-                await supabaseAdmin.from("payments").insert({
-                  customer_id: customerMatch.id,
-                  amount_paid: -Math.abs(parseFloat(amount)),
-                  method: "refund",
-                  payment_provider: "daraja",
-                  payment_status: "completed",
-                  reference: `DEV-REFUND-${callback.CheckoutRequestID}`,
-                  transaction_id: `REFUND-${mpesaRef}`,
-                });
-                await supabaseAdmin
-                  .from("customers")
-                  .update({ arrears_balance: newArrears + Math.abs(parseFloat(amount)) })
-                  .eq("id", customerMatch.id);
-                console.log(`DEV auto-refund issued for ${mpesaRef}`);
-              } catch (e) {
-                console.error("DEV auto-refund failed:", e);
-              }
-            }
           }
       }
 

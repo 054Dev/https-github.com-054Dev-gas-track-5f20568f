@@ -221,7 +221,8 @@ export default function Receipts() {
   const handleDateFilterChange = (range: { start: Date; end: Date } | null, type: DateFilterType) => {
     setDateRange(range);
     setFilterType(type);
-    setShowAll(false);
+    // When "all" is selected (range is null), show every record by default.
+    setShowAll(type === "all" && !range);
   };
 
   const fetchPaymentDeliveryData = async (payment: Payment) => {

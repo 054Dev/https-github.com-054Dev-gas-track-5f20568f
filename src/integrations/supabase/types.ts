@@ -598,6 +598,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      phone_local_digits: { Args: { input_phone: string }; Returns: string }
       reset_admin_password: {
         Args: { admin_email: string; new_password: string }
         Returns: undefined

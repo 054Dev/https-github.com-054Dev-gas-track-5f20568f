@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 interface PhoneInputProps {
-  /** Full phone value, e.g. "+254712345678" */
+  /** Full phone value as the user typed it, e.g. "0712345678" or "+254712345678" */
   value: string;
   onChange: (fullValue: string) => void;
   id?: string;
@@ -11,34 +10,8 @@ interface PhoneInputProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-  /** Default prefix used when value is empty. Defaults to "+254" (Kenya). */
+  /** @deprecated kept for API compatibility */
   defaultPrefix?: string;
-}
-
-/**
- * Splits a full phone string into a prefix (country code) and the local number.
- * The prefix always starts with "+" and contains 1-4 digits.
- */
-function splitPhone(value: string, defaultPrefix: string): { prefix: string; rest: string } {
-  const v = (value || "").trim();
-  if (!v) return { prefix: defaultPrefix, rest: "" };
-  if (v.startsWith("+")) {
-    // Use the default prefix length when possible so we don't eat digits
-    // that belong to the local number.
-    const digits = v.slice(1).replace(/\D/g, "");
-    const defaultDigits = defaultPrefix.replace(/\D/g, "");
-    if (defaultDigits && digits.startsWith(defaultDigits)) {
-      return { prefix: `+${defaultDigits}`, rest: digits.slice(defaultDigits.length) };
-    }
-    // Fallback: take a reasonable country-code length (1-3 digits) without
-    // greedily consuming the local number's leading digit.
-    const m = digits.match(/^(\d{1,3})(.*)$/);
-    if (m) return { prefix: `+${m[1]}`, rest: m[2] };
-    return { prefix: defaultPrefix, rest: digits };
-  }
-  // No "+" prefix — treat entire value as local number, preserving any
-  // leading zero the user may have entered.
-  return { prefix: defaultPrefix, rest: v.replace(/\D/g, "") };
 }
 
 export function PhoneInput({
@@ -47,83 +20,45 @@ export function PhoneInput({
   id,
   required,
   disabled,
-  placeholder = "712 345 678",
+  placeholder = "0712345678 or +254712345678",
   className,
-  defaultPrefix = "+254",
 }: PhoneInputProps) {
-  // Locally controlled so that what the user types is exactly what the user
-  // sees — digits typed in the local field stay in the local field.
-  const [prefix, setPrefix] = useState<string>(() => splitPhone(value, defaultPrefix).prefix);
-  const [rest, setRest] = useState<string>(() => splitPhone(value, defaultPrefix).rest);
-
-  // Sync from external value when it changes meaningfully (e.g. initial load).
-  useEffect(() => {
-    const next = splitPhone(value, defaultPrefix);
-    if (`${next.prefix}${next.rest}` !== `${prefix}${rest}`) {
-      setPrefix(next.prefix);
-      setRest(next.rest);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
-
-  const emit = (newPrefix: string, newRest: string) => {
-    onChange(`${newPrefix}${newRest}`);
-  };
-
-  const handlePrefixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let p = e.target.value.replace(/[^\d+]/g, "");
-    if (!p.startsWith("+")) p = `+${p.replace(/\+/g, "")}`;
-    // Limit to + and up to 4 digits
-    p = p.slice(0, 5);
-    setPrefix(p);
-    emit(p, rest);
-  };
-
-  const handleRestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow any digits including a leading zero — keep the input verbatim.
-    const next = e.target.value.replace(/\D/g, "");
-    setRest(next);
-    emit(prefix, next);
+  // Single field. Allow digits, spaces, dashes, and a leading "+".
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let v = e.target.value;
+    // Keep only digits and an optional leading "+"
+    const hasPlus = v.trim().startsWith("+");
+    const digits = v.replace(/\D/g, "");
+    onChange(hasPlus ? `+${digits}` : digits);
   };
 
   return (
-    <div className={cn("flex gap-2", className)}>
-      <Input
-        type="text"
-        value={prefix}
-        onChange={handlePrefixChange}
-        disabled={disabled}
-        className="w-20 text-center"
-        aria-label="Country code"
-      />
-      <Input
-        id={id}
-        type="tel"
-        inputMode="numeric"
-        value={rest}
-        onChange={handleRestChange}
-        required={required}
-        disabled={disabled}
-        placeholder={placeholder}
-        className="flex-1"
-      />
-    </div>
+    <Input
+      id={id}
+      type="tel"
+      inputMode="tel"
+      value={value || ""}
+      onChange={handleChange}
+      required={required}
+      disabled={disabled}
+      placeholder={placeholder}
+      className={cn(className)}
+    />
   );
 }
 
 /**
- * Returns true if a phone number already exists in customers or profiles tables.
- * Excludes the given user_id when provided (for self-edit checks).
- */
-/**
- * Returns the last 9 digits of any phone string. This is the canonical
- * "local digits" form used to detect duplicates regardless of the prefix
- * (whether stored as +254..., 254..., 0..., or another country code).
+ * Canonical normalized form of a phone number. A leading "0" is treated as
+ * Kenyan code "254", so "0712345678" and "+254712345678" both normalize to
+ * "254712345678". Numbers from different country codes (e.g. "+234...") stay
+ * distinct.
  */
 export function localPhoneDigits(input: string | null | undefined): string {
   if (!input) return "";
   const digits = input.replace(/\D/g, "");
-  return digits.slice(-9);
+  if (!digits) return "";
+  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
+  return digits;
 }
 
 export async function isPhoneTaken(
@@ -131,33 +66,35 @@ export async function isPhoneTaken(
   fullPhone: string,
   excludeUserId?: string,
 ): Promise<boolean> {
-  const local = localPhoneDigits(fullPhone);
-  if (local.length < 9) return false;
+  const normalized = localPhoneDigits(fullPhone);
+  if (normalized.length < 8) return false;
 
-  // Pull a small candidate set and compare on the canonical 9-digit form
-  // client-side — the DB stores phones with mixed prefixes so a direct
-  // equality filter on the raw column is unreliable.
+  // Use the trailing 9 digits as a coarse filter for the LIKE query — that
+  // matches both "+254..." and "0..." stored variants — then compare on the
+  // fully normalized form client-side.
+  const tail = normalized.slice(-9);
+
   const [{ data: customers }, { data: profiles }] = await Promise.all([
     supabaseClient
       .from("customers")
       .select("user_id, phone")
       .is("deleted_at", null)
       .not("phone", "is", null)
-      .ilike("phone", `%${local}%`)
-      .limit(20),
+      .ilike("phone", `%${tail}%`)
+      .limit(50),
     supabaseClient
       .from("profiles")
       .select("id, phone")
       .not("phone", "is", null)
-      .ilike("phone", `%${local}%`)
-      .limit(20),
+      .ilike("phone", `%${tail}%`)
+      .limit(50),
   ]);
 
   const customerHit = (customers || []).some(
-    (c: any) => localPhoneDigits(c.phone) === local && (!excludeUserId || c.user_id !== excludeUserId),
+    (c: any) => localPhoneDigits(c.phone) === normalized && (!excludeUserId || c.user_id !== excludeUserId),
   );
   const profileHit = (profiles || []).some(
-    (p: any) => localPhoneDigits(p.phone) === local && (!excludeUserId || p.id !== excludeUserId),
+    (p: any) => localPhoneDigits(p.phone) === normalized && (!excludeUserId || p.id !== excludeUserId),
   );
 
   return customerHit || profileHit;

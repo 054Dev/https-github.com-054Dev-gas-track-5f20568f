@@ -144,12 +144,10 @@ export default function PlaceOrder() {
         if (itemsError) throw itemsError;
       }
 
-      const newBalance = (customer.arrears_balance || 0) + totalBill;
-      const { error: updateError } = await supabase
-        .from("customers")
-        .update({ arrears_balance: newBalance })
-        .eq("id", customer.id);
-
+      const { error: updateError } = await supabase.rpc("customer_add_to_arrears", {
+        _customer_id: customer.id,
+        _amount: totalBill,
+      });
       if (updateError) throw updateError;
 
       // Auto-bill from overpayment credit if customer has a credit balance (negative arrears)

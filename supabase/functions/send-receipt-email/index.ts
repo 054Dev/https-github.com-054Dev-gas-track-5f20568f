@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify authentication - require a valid JWT (user or service role)
+    // Require either the service role key (server-to-server) or an admin/staff JWT.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -65,19 +65,34 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
     const token = authHeader.replace("Bearer ", "");
-    const { data, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !data?.claims) {
-      // If getClaims fails, check if the token is the anon key (server-to-server call from another edge function)
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      if (token !== anonKey) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (token !== serviceRoleKey) {
+      const { data: claimsRes, error: claimsError } = await supabaseClient.auth.getClaims(token);
+      if (claimsError || !claimsRes?.claims) {
         return new Response(
           JSON.stringify({ error: "Unauthorized" }),
           { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
+      const userId = claimsRes.claims.sub as string;
+      const { data: roleData } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "co_admin", "staff"])
+        .maybeSingle();
+      if (!roleData) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
     }
+
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
+    ));
 
     const { 
       paymentId, 

@@ -97,11 +97,7 @@ serve(async (req) => {
     // Daraja callback
     if (rawBody.Body?.stkCallback) {
       const callback = rawBody.Body.stkCallback;
-      console.log("Daraja callback received:", {
-        ResultCode: callback.ResultCode,
-        CheckoutRequestID: callback.CheckoutRequestID,
-        MerchantRequestID: callback.MerchantRequestID,
-      });
+      console.log("Daraja callback received", { ResultCode: callback.ResultCode });
 
       if (callback.ResultCode === 0) {
         const items = callback.CallbackMetadata?.Item || [];
@@ -118,6 +114,9 @@ serve(async (req) => {
         let customerMatch: any = null;
         let pendingPayment: any = null;
 
+        // Idempotency: refuse if no matching pending payment row exists for this CheckoutRequestID.
+        // STK push always creates a pending row keyed by CheckoutRequestID, so a forged callback
+        // with a random/unknown id will be rejected here.
         if (checkoutRequestId) {
           const { data: pp } = await supabaseAdmin
             .from("payments")
@@ -136,14 +135,10 @@ serve(async (req) => {
           }
         }
 
-        if (!customerMatch && phone) {
-          const phoneVariants = [`+${phone}`, phone, `0${phone?.slice(3)}`];
-          const { data } = await supabaseAdmin
-            .from("customers")
-            .select("id, arrears_balance, email, in_charge_name, phone")
-            .or(phoneVariants.map(p => `phone.eq.${p}`).join(","))
-            .maybeSingle();
-          customerMatch = data;
+        // No phone-fallback: only callbacks tied to a known pending STK push are accepted.
+        if (!pendingPayment) {
+          console.warn("Callback rejected: no pending payment for CheckoutRequestID");
+          return respond(true, { message: "Callback ignored" });
         }
 
           if (customerMatch) {
@@ -183,10 +178,10 @@ serve(async (req) => {
             if (customerMatch.email && payment) {
               try {
                 const supabaseUrl = Deno.env.get("SUPABASE_URL");
-                const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+                const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
                 await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
                   method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
                   body: JSON.stringify({
                     paymentId: payment.id, customerEmail: customerMatch.email,
                     customerName: customerMatch.in_charge_name, amount: parseFloat(amount),
@@ -195,7 +190,7 @@ serve(async (req) => {
                 });
               } catch (e) { console.error("Receipt email error:", e); }
             }
-            console.log(`Daraja payment recorded: KES ${amount}, ref ${mpesaRef}`);
+            console.log("Daraja payment recorded", { paymentId: payment?.id });
           }
       }
 
@@ -213,7 +208,7 @@ serve(async (req) => {
       const { authorized } = await verifyCustomerAccess(supabaseAdmin, userId, customerId);
       if (!authorized) return respond(false, { error: "Not authorized to initiate payment for this customer" });
 
-      console.log("Initializing Daraja STK push:", { customerId, amount, deliveryId, userId });
+      console.log("Initializing Daraja STK push", { customerId });
 
       const { data: customer, error: customerError } = await supabaseAdmin
         .from("customers").select("*").eq("id", customerId).single();
@@ -258,7 +253,7 @@ serve(async (req) => {
       const stkText = await stkRes.text();
       let stkData: any;
       try { stkData = JSON.parse(stkText); } catch { stkData = { errorMessage: stkText }; }
-      console.log("Daraja STK response:", stkData);
+      console.log("Daraja STK response", { responseCode: stkData.ResponseCode, checkoutRequestId: stkData.CheckoutRequestID });
 
       if (stkData.errorCode || stkData.ResponseCode !== "0") {
         return respond(false, {
@@ -359,10 +354,10 @@ serve(async (req) => {
       if (customer.email && payment) {
         try {
           const supabaseUrl = Deno.env.get("SUPABASE_URL");
-          const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
           await fetch(`${supabaseUrl}/functions/v1/send-receipt-email`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${anonKey}` },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
             body: JSON.stringify({
               paymentId: payment.id, customerEmail: customer.email,
               customerName: customer.in_charge_name, amount,
@@ -379,6 +374,9 @@ serve(async (req) => {
     if (action === "overpayment-billing") {
       const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
       if (authError || !userId) return respond(false, { error: authError });
+
+      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
+      if (!isAdmin) return respond(false, { error: "Admin access required" });
 
       const { customerId, deliveryId } = data;
       if (!customerId || !deliveryId) return respond(false, { error: "customerId and deliveryId are required" });

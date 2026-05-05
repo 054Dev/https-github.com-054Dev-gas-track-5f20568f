@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       admin_otps: {
         Row: {
+          attempts: number
           created_at: string | null
           email: string
           expires_at: string
@@ -25,6 +26,7 @@ export type Database = {
           used: boolean | null
         }
         Insert: {
+          attempts?: number
           created_at?: string | null
           email: string
           expires_at: string
@@ -34,6 +36,7 @@ export type Database = {
           used?: boolean | null
         }
         Update: {
+          attempts?: number
           created_at?: string | null
           email?: string
           expires_at?: string

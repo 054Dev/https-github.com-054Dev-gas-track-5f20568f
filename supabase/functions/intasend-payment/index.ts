@@ -97,7 +97,11 @@ serve(async (req) => {
     // Daraja callback
     if (rawBody.Body?.stkCallback) {
       const callback = rawBody.Body.stkCallback;
-      console.log("Daraja callback received:", JSON.stringify(callback));
+      console.log("Daraja callback received:", {
+        ResultCode: callback.ResultCode,
+        CheckoutRequestID: callback.CheckoutRequestID,
+        MerchantRequestID: callback.MerchantRequestID,
+      });
 
       if (callback.ResultCode === 0) {
         const items = callback.CallbackMetadata?.Item || [];

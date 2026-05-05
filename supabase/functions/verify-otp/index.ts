@@ -51,6 +51,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Verifying OTP for email");
 
+    // Hash the submitted OTP with sha256 hex (must match DB-stored hash)
+    const otpHashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(otp));
+    const otpHash = Array.from(new Uint8Array(otpHashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
     // Look up the most recent unused OTP for this email (do not filter by otp value here,
     // so we can rate-limit per-record regardless of whether the guess is correct)
     const { data: otpRecords, error: queryError } = await supabase
@@ -102,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("admin_otps")
       .select("id")
       .eq("id", otpRecord.id)
-      .eq("otp", otp)
+      .eq("otp", otpHash)
       .maybeSingle();
 
     if (!matched) {

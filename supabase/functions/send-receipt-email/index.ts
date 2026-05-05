@@ -57,7 +57,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify authentication - require a valid JWT (user or service role)
+    // Require either the service role key (server-to-server) or an admin/staff JWT.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -65,19 +65,34 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
     const token = authHeader.replace("Bearer ", "");
-    const { data, error: claimsError } = await supabaseClient.auth.getClaims(token);
-    if (claimsError || !data?.claims) {
-      // If getClaims fails, check if the token is the anon key (server-to-server call from another edge function)
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-      if (token !== anonKey) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    if (token !== serviceRoleKey) {
+      const { data: claimsRes, error: claimsError } = await supabaseClient.auth.getClaims(token);
+      if (claimsError || !claimsRes?.claims) {
         return new Response(
           JSON.stringify({ error: "Unauthorized" }),
           { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
+      const userId = claimsRes.claims.sub as string;
+      const { data: roleData } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "co_admin", "staff"])
+        .maybeSingle();
+      if (!roleData) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
     }
+
+    const esc = (v: unknown) => String(v ?? "").replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string
+    ));
 
     const { 
       paymentId, 
@@ -105,9 +120,9 @@ const handler = async (req: Request): Promise<Response> => {
       .select("*")
       .single();
 
-    const companyName = templateData?.company_name || "FINE GAS LIMITED";
-    const footerText = templateData?.footer_text || "Thank you for your payment!";
-    const logoUrl = templateData?.logo_url || "";
+    const companyName = esc(templateData?.company_name || "FINE GAS LIMITED");
+    const footerText = esc(templateData?.footer_text || "Thank you for your payment!");
+    const logoUrl = esc(templateData?.logo_url || "");
 
     // Build custom fields HTML
     let customFieldsHtml = "";
@@ -121,8 +136,8 @@ const handler = async (req: Request): Promise<Response> => {
       if (customFields.length > 0) {
         customFieldsHtml = customFields.map(f => `
           <tr>
-            <td style="padding: 8px 0; color: #666; font-size: 14px;">${f.label}</td>
-            <td style="padding: 8px 0; text-align: right; font-weight: 600;">${f.value}</td>
+            <td style="padding: 8px 0; color: #666; font-size: 14px;">${esc(f.label)}</td>
+            <td style="padding: 8px 0; text-align: right; font-weight: 600;">${esc(f.value)}</td>
           </tr>
         `).join("");
       }
@@ -132,17 +147,17 @@ const handler = async (req: Request): Promise<Response> => {
       ? `<img src="${logoUrl}" alt="${companyName}" style="max-height: 60px; margin-bottom: 16px;" />`
       : "";
 
-    const transactionIdHtml = (templateData?.show_transaction_id !== false && transactionId) 
+    const transactionIdHtml = (templateData?.show_transaction_id !== false && transactionId)
       ? `<tr>
           <td style="padding: 8px 0; color: #666; font-size: 14px;">Transaction ID</td>
-          <td style="padding: 8px 0; text-align: right; font-family: monospace; font-size: 12px; word-break: break-all;">${transactionId}</td>
+          <td style="padding: 8px 0; text-align: right; font-family: monospace; font-size: 12px; word-break: break-all;">${esc(transactionId)}</td>
         </tr>`
       : "";
 
     const paymentMethodHtml = templateData?.show_payment_method !== false
       ? `<tr>
           <td style="padding: 8px 0; color: #666; font-size: 14px;">Payment Method</td>
-          <td style="padding: 8px 0; text-align: right; font-weight: 600;">${getMethodDisplay(method)}</td>
+          <td style="padding: 8px 0; text-align: right; font-weight: 600;">${esc(getMethodDisplay(method))}</td>
         </tr>`
       : "";
 
@@ -174,7 +189,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <tr>
                   <td>
                     <p style="margin: 0 0 4px; color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Customer Name</p>
-                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${customerName}</p>
+                    <p style="margin: 0; font-size: 18px; font-weight: 600; color: #1a1a1a;">${esc(customerName)}</p>
                   </td>
                 </tr>
                 <tr>

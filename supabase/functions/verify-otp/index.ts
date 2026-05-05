@@ -51,13 +51,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Verifying OTP for email");
 
-    // Query admin_otps table for matching OTP (using service role to bypass RLS)
-    const { data: otpRecord, error: queryError } = await supabase
+    // Look up the most recent unused OTP for this email (do not filter by otp value here,
+    // so we can rate-limit per-record regardless of whether the guess is correct)
+    const { data: otpRecords, error: queryError } = await supabase
       .from("admin_otps")
       .select("id, expires_at, used, attempts")
       .eq("email", email.toLowerCase().trim())
       .eq("used", false)
-      .maybeSingle();
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const otpRecord = otpRecords && otpRecords.length > 0 ? otpRecords[0] : null;
 
     if (queryError) {
       console.error("Error querying OTP");

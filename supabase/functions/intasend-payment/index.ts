@@ -375,11 +375,17 @@ serve(async (req) => {
       const { userId, error: authError } = await verifyAuth(req, supabaseAdmin);
       if (authError || !userId) return respond(false, { error: authError });
 
-      const isAdmin = await verifyAdminRole(supabaseAdmin, userId);
-      if (!isAdmin) return respond(false, { error: "Admin access required" });
-
       const { customerId, deliveryId } = data;
       if (!customerId || !deliveryId) return respond(false, { error: "customerId and deliveryId are required" });
+
+      // Require admin OR ownership of the customer record + delivery must belong to that customer
+      const { authorized } = await verifyCustomerAccess(supabaseAdmin, userId, customerId);
+      if (!authorized) return respond(false, { error: "Not authorized for this customer" });
+      const { data: deliveryOwner } = await supabaseAdmin
+        .from("deliveries").select("customer_id").eq("id", deliveryId).maybeSingle();
+      if (!deliveryOwner || deliveryOwner.customer_id !== customerId) {
+        return respond(false, { error: "Delivery does not belong to this customer" });
+      }
 
       const [{ data: customer }, { data: delivery }] = await Promise.all([
         supabaseAdmin.from("customers").select("email, in_charge_name, arrears_balance").eq("id", customerId).single(),

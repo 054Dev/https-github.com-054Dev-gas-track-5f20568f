@@ -129,38 +129,11 @@ export default function CustomerOrders() {
     try {
       setLoading(true);
       
-      // Get delivery details before deleting
-      const { data: deliveryData, error: fetchError } = await supabase
-        .from("deliveries")
-        .select("total_charge, customer_id")
-        .eq("id", selectedDeliveryId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Delete the delivery
-      const { error: deleteError } = await supabase
-        .from("deliveries")
-        .delete()
-        .eq("id", selectedDeliveryId);
-
-      if (deleteError) throw deleteError;
-
-      // Update customer arrears
-      const { data: customerData, error: customerFetchError } = await supabase
-        .from("customers")
-        .select("arrears_balance")
-        .eq("id", deliveryData.customer_id)
-        .single();
-
-      if (!customerFetchError && customerData) {
-        await supabase
-          .from("customers")
-          .update({
-            arrears_balance: (customerData.arrears_balance || 0) - deliveryData.total_charge,
-          })
-          .eq("id", deliveryData.customer_id);
-      }
+      // Server-side RPC: deletes pending delivery and refunds arrears atomically
+      const { error: revertError } = await supabase.rpc("customer_revert_pending_delivery", {
+        _delivery_id: selectedDeliveryId,
+      });
+      if (revertError) throw revertError;
 
       toast({
         title: "Success",

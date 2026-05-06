@@ -177,6 +177,7 @@ export default function PlaceOrder() {
       }
 
       // Notify customer of their pending balance
+      const newBalance = (customer.arrears_balance || 0) + totalBill;
       if (newBalance > 0) {
         await supabase.from("notifications").insert({
           customer_id: customer.id,

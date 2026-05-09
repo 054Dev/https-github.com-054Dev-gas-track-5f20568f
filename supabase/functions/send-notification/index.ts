@@ -10,6 +10,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const esc = (s: unknown) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface NotificationRequest {
   customerId: string;
   message: string;
@@ -120,11 +128,11 @@ const handler = async (req: Request): Promise<Response> => {
         await resend.emails.send({
           from: "Gas Delivery <onboarding@resend.dev>",
           to: [customer.email],
-          subject: `Order Status Update - ${status}`,
+          subject: `Order Status Update - ${String(status).replace(/[\r\n]/g, " ").slice(0, 120)}`,
           html: `
-            <h2>Hello ${customer.shop_name}!</h2>
-            <p>${message}</p>
-            <p>Current Status: <strong>${status.replace("_", " ").toUpperCase()}</strong></p>
+            <h2>Hello ${esc(customer.shop_name)}!</h2>
+            <p>${esc(message)}</p>
+            <p>Current Status: <strong>${esc(String(status).replace("_", " ").toUpperCase())}</strong></p>
             <p>Thank you for your business!</p>
           `,
         });

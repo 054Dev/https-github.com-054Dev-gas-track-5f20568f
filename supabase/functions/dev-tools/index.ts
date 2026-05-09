@@ -96,10 +96,14 @@ Deno.serve(async (req) => {
     // Daily backup action uses service key (called from cron)
     if (action === "daily_backup") {
       const cronSecret = req.headers.get("x-cron-secret");
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      // Accept if called with valid authorization
-      if (cronSecret === serviceKey || cronSecret === anonKey) {
+      const dedicatedCronSecret = Deno.env.get("CRON_SECRET");
+      // Only accept the service role key or a dedicated CRON_SECRET.
+      // The publishable anon key is NOT a secret and must never grant access.
+      if (
+        (serviceKey && cronSecret === serviceKey) ||
+        (dedicatedCronSecret && cronSecret === dedicatedCronSecret)
+      ) {
         authenticated = true;
       }
       // Also accept PIN auth

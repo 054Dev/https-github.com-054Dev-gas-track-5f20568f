@@ -32,7 +32,10 @@ import CustomerReceipts from "./pages/customer/Receipts";
 import CustomerNotifications from "./pages/customer/Notifications";
 import AdminNotifications from "./pages/admin/Notifications";
 import AdminBackups from "./pages/admin/Backups";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
+import { CookieConsent } from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -75,8 +78,11 @@ const App = () => (
             <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/backups" element={<AdminBackups />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CookieConsent />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

@@ -32,7 +32,7 @@ export function Header({ user, onLogout, children }: HeaderProps) {
             className="h-10 w-10 md:h-14 md:w-14 object-contain"
           />
           <div className="flex flex-col">
-            <h1 className="text-sm md:text-xl font-bold text-primary">Fine Gas Limited</h1>
+            <span className="text-sm md:text-xl font-bold text-primary">Fine Gas Limited</span>
             <span className="text-xs md:text-sm text-muted-foreground hidden sm:block">Quality Gas Supply</span>
           </div>
         </Link>

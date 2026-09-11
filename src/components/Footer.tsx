@@ -127,11 +127,18 @@ export function Footer({ role }: FooterProps) {
               <p className="text-xs md:text-sm text-muted-foreground text-center md:text-left">
                 © 2025 Fine Gas Limited. All rights reserved.
               </p>
+              <Link to="/terms" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                Terms
+              </Link>
+              <Link to="/privacy" className="text-xs text-muted-foreground hover:text-primary hover:underline">
+                Privacy
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setDevDialogOpen(true)}
                 className="h-6 px-2"
+                aria-label="Developer information"
               >
                 <Info className="h-3 w-3" />
               </Button>

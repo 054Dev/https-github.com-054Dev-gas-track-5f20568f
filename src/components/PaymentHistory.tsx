@@ -88,6 +88,7 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
   const downloadReceipt = (payment: Payment) => {
     downloadReceiptPDF({
       customerName,
+      shopName,
       amount: payment.amount_paid,
       method: payment.method,
       date: payment.paid_at,
@@ -224,6 +225,7 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
             <div className="space-y-4">
               <ReceiptViewer
                 customerName={customerName}
+                shopName={shopName}
                 amount={selectedPayment.amount_paid}
                 method={selectedPayment.method}
                 date={selectedPayment.paid_at}

@@ -13,6 +13,8 @@ interface TemplateSettings {
 
 interface ReceiptViewerProps {
   customerName: string;
+  shopName?: string;
+  accountName?: string;
   amount: number;
   method: string;
   date: string;
@@ -28,6 +30,8 @@ interface ReceiptViewerProps {
 
 export function ReceiptViewer({
   customerName,
+  shopName,
+  accountName,
   amount,
   method,
   date,

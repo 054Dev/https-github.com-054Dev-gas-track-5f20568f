@@ -13,6 +13,8 @@ interface TemplateSettings {
 
 interface ReceiptViewerProps {
   customerName: string;
+  shopName?: string;
+  accountName?: string;
   amount: number;
   method: string;
   date: string;
@@ -28,6 +30,8 @@ interface ReceiptViewerProps {
 
 export function ReceiptViewer({
   customerName,
+  shopName,
+  accountName,
   amount,
   method,
   date,
@@ -95,6 +99,18 @@ export function ReceiptViewer({
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Customer Name</p>
           <p className="text-lg font-semibold">{customerName}</p>
         </div>
+        {accountName && accountName !== customerName && (
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Paid By</p>
+            <p className="text-sm font-medium">{accountName}</p>
+          </div>
+        )}
+        {shopName && (
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">Shop / Business</p>
+            <p className="text-sm font-medium">{shopName}</p>
+          </div>
+        )}
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wide">Date & Time</p>
           <p className="text-sm font-medium">{format(new Date(date), "EEEE, MMMM dd, yyyy 'at' HH:mm")}</p>

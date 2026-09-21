@@ -62,6 +62,7 @@ export default function Receipts() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [paymentDeliveryData, setPaymentDeliveryData] = useState<DeliveryData | null>(null);
   const [customerName, setCustomerName] = useState("");
+  const [shopName, setShopName] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [liveCustomerDebt, setLiveCustomerDebt] = useState(0);
   const [templateSettings, setTemplateSettings] = useState<TemplateSettings | null>(null);
@@ -159,12 +160,13 @@ export default function Receipts() {
   const loadCustomerInfo = async () => {
     const { data } = await supabase
       .from("customers")
-      .select("in_charge_name, arrears_balance")
+      .select("in_charge_name, shop_name, arrears_balance")
       .eq("id", customerId)
       .single();
 
     if (data) {
       setCustomerName(data.in_charge_name);
+      setShopName(data.shop_name || "");
       setLiveCustomerDebt(data.arrears_balance || 0);
     }
   };

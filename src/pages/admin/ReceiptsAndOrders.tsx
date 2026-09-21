@@ -256,6 +256,7 @@ export default function ReceiptsAndOrders() {
   const downloadSingleReceipt = (payment: Payment, deliveryData?: { total_kg: number; price_per_kg_at_time: number; total_charge: number } | null, customerDebt?: number) => {
     downloadReceiptPDF({
       customerName: payment.customers?.in_charge_name || "Customer",
+      shopName: payment.customers?.shop_name,
       amount: payment.amount_paid,
       method: payment.method,
       date: payment.paid_at,
@@ -477,6 +478,7 @@ export default function ReceiptsAndOrders() {
             <div className="space-y-4">
               <ReceiptViewer
                 customerName={selectedPayment.customers?.in_charge_name || "Customer"}
+                shopName={selectedPayment.customers?.shop_name}
                 amount={selectedPayment.amount_paid}
                 method={selectedPayment.method}
                 date={selectedPayment.paid_at}

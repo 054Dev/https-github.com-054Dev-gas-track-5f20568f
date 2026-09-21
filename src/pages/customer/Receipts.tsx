@@ -262,6 +262,8 @@ export default function Receipts() {
   ) => {
     downloadReceiptPDF({
       customerName,
+      shopName,
+      accountName: user?.full_name || undefined,
       amount: payment.amount_paid,
       method: payment.method,
       date: payment.paid_at,
@@ -507,6 +509,8 @@ export default function Receipts() {
               )}
               <ReceiptViewer
                 customerName={customerName}
+                shopName={shopName}
+                accountName={user?.full_name || undefined}
                 amount={selectedPayment.amount_paid}
                 method={selectedPayment.method}
                 date={selectedPayment.paid_at}

@@ -51,6 +51,7 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [customerName, setCustomerName] = useState("");
+  const [shopName, setShopName] = useState("");
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -61,12 +62,13 @@ export function PaymentHistory({ customerId, isAdmin = false }: PaymentHistoryPr
   const loadCustomerName = async () => {
     const { data } = await supabase
       .from("customers")
-      .select("in_charge_name")
+      .select("in_charge_name, shop_name")
       .eq("id", customerId)
       .single();
     
     if (data) {
       setCustomerName(data.in_charge_name);
+      setShopName(data.shop_name || "");
     }
   };
 

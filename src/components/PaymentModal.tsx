@@ -67,8 +67,8 @@ export function PaymentModal({
       if (data && !data.ok) throw new Error(data.error || "STK push failed");
 
       toast({
-        title: "M-Pesa Prompt Sent",
-        description: `Check your phone for the M-Pesa payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
+        title: "Payment Prompt Sent",
+        description: `Check your phone for the payment prompt of KES ${effectiveAmount.toLocaleString()}.`,
       });
 
       // Auto-close — no manual verification needed; receipts are sent
@@ -101,7 +101,7 @@ export function PaymentModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Pay via M-Pesa</DialogTitle>
+          <DialogTitle>Pay via Mobile Money</DialogTitle>
           <DialogDescription>
             Total due: KES {amount.toLocaleString()}
           </DialogDescription>
@@ -154,9 +154,9 @@ export function PaymentModal({
               <div className="flex items-center gap-3 p-4 border rounded-lg bg-accent/30">
                 <Smartphone className="h-8 w-8 text-primary shrink-0" />
                 <div>
-                  <p className="font-medium">M-Pesa STK Push</p>
+                  <p className="font-medium">M-Pesa & Airtel Money</p>
                   <p className="text-sm text-muted-foreground">
-                    A payment prompt will be sent to your registered phone number.
+                    A payment prompt is sent to your registered phone number — works with both Safaricom M-Pesa and Airtel Money.
                   </p>
                 </div>
               </div>

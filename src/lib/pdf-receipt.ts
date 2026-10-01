@@ -213,6 +213,9 @@ export const generateReceiptPDF = (data: ReceiptData): jsPDF => {
   }
   doc.setFontSize(6);
   doc.text(`Official receipt from ${settings.companyName}`, pageWidth / 2, y, { align: "center" });
+  y += 3;
+  doc.setFontSize(5);
+  doc.text(doc.splitTextToSize(DATA_PROTECTION_NOTICE, pageWidth - 16), pageWidth / 2, y, { align: "center" });
 
   return doc;
 };

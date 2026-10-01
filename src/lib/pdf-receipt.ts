@@ -1,3 +1,4 @@
+import { maskReference, DATA_PROTECTION_NOTICE } from "./privacy";
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 
@@ -116,7 +117,7 @@ export const generateReceiptPDF = (data: ReceiptData): jsPDF => {
     y += 3.5;
     doc.setFontSize(6.5);
     doc.setTextColor(0);
-    const txt = data.transactionId || data.reference || "";
+    const txt = maskReference(data.transactionId || data.reference || "");
     doc.text(doc.splitTextToSize(txt, pageWidth - M * 2), M, y);
     y += 5;
   }

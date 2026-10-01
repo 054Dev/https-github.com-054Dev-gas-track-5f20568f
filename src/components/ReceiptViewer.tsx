@@ -1,3 +1,4 @@
+import { maskReference } from "@/lib/privacy";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Receipt, AlertTriangle } from "lucide-react";
@@ -153,7 +154,7 @@ export function ReceiptViewer({
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Transaction ID</p>
             <p className="text-xs font-mono bg-muted px-2 py-1 rounded break-all">
-              {transactionId || reference}
+              {maskReference(transactionId || reference)}
             </p>
           </div>
         )}

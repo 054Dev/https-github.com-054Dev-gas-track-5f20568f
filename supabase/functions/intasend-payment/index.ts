@@ -50,6 +50,58 @@ function formatPhone(phone: string): string {
   return cleaned;
 }
 
+/** Detect the mobile money network from a Kenyan MSISDN (254XXXXXXXXX). */
+function detectCarrier(msisdn: string): "safaricom" | "airtel" | "unknown" {
+  const local = msisdn.slice(3); // drop 254
+  // Airtel Kenya: 073x, 078x, 075x, 010x
+  if (/^(73|78|75|10)/.test(local)) return "airtel";
+  // Safaricom: 070,071,072,074,079,011x
+  if (/^(70|71|72|74|79|11)/.test(local)) return "safaricom";
+  return "unknown";
+}
+
+const AIRTEL_BASE = "https://openapiuat.airtel.africa"; // sandbox
+
+async function getAirtelToken(): Promise<string> {
+  const clientId = Deno.env.get("AIRTEL_CLIENT_ID");
+  const clientSecret = Deno.env.get("AIRTEL_CLIENT_SECRET");
+  if (!clientId || !clientSecret) throw new Error("Airtel Money credentials not configured");
+
+  const res = await fetch(`${AIRTEL_BASE}/auth/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "*/*" },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials" }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Airtel auth failed [${res.status}]`);
+  return JSON.parse(text).access_token;
+}
+
+/** Push an Airtel Money USSD payment prompt. Returns the transaction reference. */
+async function airtelPush(msisdn: string, amount: number, reference: string) {
+  const token = await getAirtelToken();
+  const res = await fetch(`${AIRTEL_BASE}/merchant/v1/payments/`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "*/*",
+      "X-Country": "KE",
+      "X-Currency": "KES",
+    },
+    body: JSON.stringify({
+      reference: "Gas delivery payment",
+      subscriber: { country: "KE", currency: "KES", msisdn: msisdn.slice(3) },
+      transaction: { amount, country: "KE", currency: "KES", id: reference },
+    }),
+  });
+  const text = await res.text();
+  let body: any;
+  try { body = JSON.parse(text); } catch { body = {}; }
+  const success = res.ok && body?.status?.success !== false;
+  return { success, body };
+}
+
 async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {

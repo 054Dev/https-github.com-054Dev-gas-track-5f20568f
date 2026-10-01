@@ -146,6 +146,73 @@ serve(async (req) => {
 
     const rawBody = await req.json();
 
+    // ── Airtel Money callback ──
+    if (rawBody.transaction && !rawBody.Body) {
+      const tx = rawBody.transaction;
+      const txRef = (tx.id || "").toString();
+      const succeeded = tx.status_code === "TS" || tx.status === "TS";
+      console.log("Airtel callback received", { succeeded });
+
+      if (!succeeded || !txRef) return respond(true, { message: "Callback ignored" });
+
+      const { data: pending } = await supabaseAdmin
+        .from("payments")
+        .select("id, customer_id, delivery_id")
+        .eq("reference", txRef)
+        .eq("payment_status", "pending")
+        .maybeSingle();
+
+      if (!pending) {
+        console.warn("Airtel callback rejected: no matching pending payment");
+        return respond(true, { message: "Callback ignored" });
+      }
+
+      const { data: cust } = await supabaseAdmin
+        .from("customers")
+        .select("id, arrears_balance, email, in_charge_name")
+        .eq("id", pending.customer_id)
+        .maybeSingle();
+
+      const paidAmount = Number(tx.amount ?? 0);
+      const { data: payment } = await supabaseAdmin
+        .from("payments")
+        .update({
+          amount_paid: paidAmount,
+          payment_status: "completed",
+          transaction_id: tx.airtel_money_id || txRef,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", pending.id)
+        .select().single();
+
+      if (cust) {
+        await supabaseAdmin
+          .from("customers")
+          .update({ arrears_balance: (cust.arrears_balance || 0) - paidAmount })
+          .eq("id", cust.id);
+
+        if (cust.email && payment) {
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-receipt-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                paymentId: payment.id, customerEmail: cust.email,
+                customerName: cust.in_charge_name, amount: paidAmount,
+                method: "airtel-money", transactionId: tx.airtel_money_id || txRef,
+                paidAt: payment.paid_at,
+              }),
+            });
+          } catch (e) { console.error("Receipt email error:", e); }
+        }
+      }
+
+      return respond(true, { message: "Callback processed" });
+    }
+
     // Daraja callback
     if (rawBody.Body?.stkCallback) {
       const callback = rawBody.Body.stkCallback;

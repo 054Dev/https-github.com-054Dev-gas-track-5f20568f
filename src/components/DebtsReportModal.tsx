@@ -1,3 +1,4 @@
+import { maskPhone } from "@/lib/privacy";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -179,7 +180,7 @@ export function DebtsReportModal({ open, onOpenChange }: DebtsReportModalProps) 
       
       doc.text(shopName, 20, y);
       doc.text(contactName, 70, y);
-      doc.text(customer.phone, 110, y);
+      doc.text(maskPhone(customer.phone), 110, y);
       doc.text(Number(customer.arrears_balance).toLocaleString(), 150, y);
       doc.text(format(new Date(customer.updated_at), "dd/MM/yyyy"), 175, y);
       

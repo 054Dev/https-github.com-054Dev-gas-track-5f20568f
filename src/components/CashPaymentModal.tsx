@@ -95,14 +95,14 @@ export function CashPaymentModal({
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
-            Record cash received or send the customer an M-Pesa prompt
+            Record cash received or send the customer a mobile money prompt
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="cash" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="cash">Cash</TabsTrigger>
-            <TabsTrigger value="stk">M-Pesa Prompt</TabsTrigger>
+            <TabsTrigger value="stk">Mobile Money</TabsTrigger>
           </TabsList>
 
           <TabsContent value="cash">
@@ -145,7 +145,7 @@ export function CashPaymentModal({
           <TabsContent value="stk">
             <div className="space-y-4 pt-2">
               <p className="text-sm text-muted-foreground">
-                Send the customer an M-Pesa STK push for this {deliveryId ? "order" : "outstanding balance"}.
+                Send the customer an M-Pesa or Airtel Money prompt for this {deliveryId ? "order" : "outstanding balance"}.
               </p>
               <Button
                 className="w-full"
@@ -155,7 +155,7 @@ export function CashPaymentModal({
                   onOpenChange(false);
                 }}
               >
-                Send M-Pesa Prompt
+                Send Payment Prompt
               </Button>
             </div>
           </TabsContent>

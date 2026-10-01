@@ -50,6 +50,58 @@ function formatPhone(phone: string): string {
   return cleaned;
 }
 
+/** Detect the mobile money network from a Kenyan MSISDN (254XXXXXXXXX). */
+function detectCarrier(msisdn: string): "safaricom" | "airtel" | "unknown" {
+  const local = msisdn.slice(3); // drop 254
+  // Airtel Kenya: 073x, 078x, 075x, 010x
+  if (/^(73|78|75|10)/.test(local)) return "airtel";
+  // Safaricom: 070,071,072,074,079,011x
+  if (/^(70|71|72|74|79|11)/.test(local)) return "safaricom";
+  return "unknown";
+}
+
+const AIRTEL_BASE = "https://openapiuat.airtel.africa"; // sandbox
+
+async function getAirtelToken(): Promise<string> {
+  const clientId = Deno.env.get("AIRTEL_CLIENT_ID");
+  const clientSecret = Deno.env.get("AIRTEL_CLIENT_SECRET");
+  if (!clientId || !clientSecret) throw new Error("Airtel Money credentials not configured");
+
+  const res = await fetch(`${AIRTEL_BASE}/auth/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "*/*" },
+    body: JSON.stringify({ client_id: clientId, client_secret: clientSecret, grant_type: "client_credentials" }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Airtel auth failed [${res.status}]`);
+  return JSON.parse(text).access_token;
+}
+
+/** Push an Airtel Money USSD payment prompt. Returns the transaction reference. */
+async function airtelPush(msisdn: string, amount: number, reference: string) {
+  const token = await getAirtelToken();
+  const res = await fetch(`${AIRTEL_BASE}/merchant/v1/payments/`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "*/*",
+      "X-Country": "KE",
+      "X-Currency": "KES",
+    },
+    body: JSON.stringify({
+      reference: "Gas delivery payment",
+      subscriber: { country: "KE", currency: "KES", msisdn: msisdn.slice(3) },
+      transaction: { amount, country: "KE", currency: "KES", id: reference },
+    }),
+  });
+  const text = await res.text();
+  let body: any;
+  try { body = JSON.parse(text); } catch { body = {}; }
+  const success = res.ok && body?.status?.success !== false;
+  return { success, body };
+}
+
 async function verifyAuth(req: Request, supabaseAdmin: any): Promise<{ userId: string | null; error?: string }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -93,6 +145,73 @@ serve(async (req) => {
     );
 
     const rawBody = await req.json();
+
+    // ── Airtel Money callback ──
+    if (rawBody.transaction && !rawBody.Body) {
+      const tx = rawBody.transaction;
+      const txRef = (tx.id || "").toString();
+      const succeeded = tx.status_code === "TS" || tx.status === "TS";
+      console.log("Airtel callback received", { succeeded });
+
+      if (!succeeded || !txRef) return respond(true, { message: "Callback ignored" });
+
+      const { data: pending } = await supabaseAdmin
+        .from("payments")
+        .select("id, customer_id, delivery_id")
+        .eq("reference", txRef)
+        .eq("payment_status", "pending")
+        .maybeSingle();
+
+      if (!pending) {
+        console.warn("Airtel callback rejected: no matching pending payment");
+        return respond(true, { message: "Callback ignored" });
+      }
+
+      const { data: cust } = await supabaseAdmin
+        .from("customers")
+        .select("id, arrears_balance, email, in_charge_name")
+        .eq("id", pending.customer_id)
+        .maybeSingle();
+
+      const paidAmount = Number(tx.amount ?? 0);
+      const { data: payment } = await supabaseAdmin
+        .from("payments")
+        .update({
+          amount_paid: paidAmount,
+          payment_status: "completed",
+          transaction_id: tx.airtel_money_id || txRef,
+          paid_at: new Date().toISOString(),
+        })
+        .eq("id", pending.id)
+        .select().single();
+
+      if (cust) {
+        await supabaseAdmin
+          .from("customers")
+          .update({ arrears_balance: (cust.arrears_balance || 0) - paidAmount })
+          .eq("id", cust.id);
+
+        if (cust.email && payment) {
+          try {
+            await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-receipt-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                paymentId: payment.id, customerEmail: cust.email,
+                customerName: cust.in_charge_name, amount: paidAmount,
+                method: "airtel-money", transactionId: tx.airtel_money_id || txRef,
+                paidAt: payment.paid_at,
+              }),
+            });
+          } catch (e) { console.error("Receipt email error:", e); }
+        }
+      }
+
+      return respond(true, { message: "Callback processed" });
+    }
 
     // Daraja callback
     if (rawBody.Body?.stkCallback) {
@@ -215,6 +334,57 @@ serve(async (req) => {
       if (customerError || !customer) return respond(false, { error: "Customer not found" });
 
       const phone = formatPhone(customer.phone);
+      const carrier = detectCarrier(phone);
+      const airtelConfigured = !!(Deno.env.get("AIRTEL_CLIENT_ID") && Deno.env.get("AIRTEL_CLIENT_SECRET"));
+
+      // ── Airtel Money prompt ──
+      if (carrier === "airtel") {
+        if (!airtelConfigured) {
+          return respond(false, {
+            error: "Airtel Money is not yet activated for this business. Please pay with an M-Pesa number or ask the team to record the payment.",
+            diagnostics: { error_stage: "airtel_not_configured" },
+          });
+        }
+        const airtelAmount = Math.ceil(amount);
+        const txRef = `AIRTEL-${crypto.randomUUID()}`;
+        let pushResult: { success: boolean; body: any };
+        try {
+          pushResult = await airtelPush(phone, airtelAmount, txRef);
+        } catch (e: any) {
+          console.error("Airtel auth/push error:", e.message);
+          return respond(false, { error: "Failed to reach Airtel Money.", diagnostics: { error_stage: "airtel_push" } });
+        }
+
+        if (!pushResult.success) {
+          return respond(false, {
+            error: pushResult.body?.status?.message || "Airtel Money prompt failed",
+            diagnostics: { error_stage: "airtel_push" },
+          });
+        }
+
+        try {
+          await supabaseAdmin.from("payments").insert({
+            customer_id: customerId,
+            delivery_id: deliveryId || null,
+            amount_paid: 0,
+            method: "airtel-money",
+            payment_provider: "airtel",
+            payment_status: "pending",
+            reference: txRef,
+          });
+        } catch (e) {
+          console.error("Failed to persist pending Airtel payment:", e);
+        }
+
+        return respond(true, {
+          message: "Airtel Money prompt sent. Check your phone to approve the payment.",
+          checkoutRequestId: txRef,
+          chargedAmount: airtelAmount,
+          intendedAmount: amount,
+          provider: "airtel",
+        });
+      }
+
       const timestamp = new Date().toISOString().replace(/[-T:\.Z]/g, "").slice(0, 14);
       const password = generatePassword(timestamp);
 

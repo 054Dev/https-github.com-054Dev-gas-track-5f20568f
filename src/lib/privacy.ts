@@ -14,12 +14,12 @@ export function maskPhone(phone?: string | null): string {
   return `${prefix}•• ••• ${last}`;
 }
 
-/** "SKJ7H2K9LP" -> "••••••K9LP" (keeps last 4 for customer support lookup) */
+/** "SKJ7H2K9LP" -> "SKJ•••K9LP" (first 3 + last 3: month prefix stays visible) */
 export function maskReference(ref?: string | null): string {
   if (!ref) return "";
   const r = ref.trim();
-  if (r.length <= 4) return "••••";
-  return "•".repeat(Math.min(r.length - 4, 8)) + r.slice(-4);
+  if (r.length <= 6) return "•".repeat(Math.max(r.length, 4));
+  return r.slice(0, 3) + "•".repeat(Math.min(r.length - 6, 6)) + r.slice(-3);
 }
 
 export const DATA_PROTECTION_NOTICE =

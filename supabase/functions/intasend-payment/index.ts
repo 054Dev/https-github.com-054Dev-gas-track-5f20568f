@@ -267,6 +267,57 @@ serve(async (req) => {
       if (customerError || !customer) return respond(false, { error: "Customer not found" });
 
       const phone = formatPhone(customer.phone);
+      const carrier = detectCarrier(phone);
+      const airtelConfigured = !!(Deno.env.get("AIRTEL_CLIENT_ID") && Deno.env.get("AIRTEL_CLIENT_SECRET"));
+
+      // ── Airtel Money prompt ──
+      if (carrier === "airtel") {
+        if (!airtelConfigured) {
+          return respond(false, {
+            error: "Airtel Money is not yet activated for this business. Please pay with an M-Pesa number or ask the team to record the payment.",
+            diagnostics: { error_stage: "airtel_not_configured" },
+          });
+        }
+        const airtelAmount = Math.ceil(amount);
+        const txRef = `AIRTEL-${crypto.randomUUID()}`;
+        let pushResult: { success: boolean; body: any };
+        try {
+          pushResult = await airtelPush(phone, airtelAmount, txRef);
+        } catch (e: any) {
+          console.error("Airtel auth/push error:", e.message);
+          return respond(false, { error: "Failed to reach Airtel Money.", diagnostics: { error_stage: "airtel_push" } });
+        }
+
+        if (!pushResult.success) {
+          return respond(false, {
+            error: pushResult.body?.status?.message || "Airtel Money prompt failed",
+            diagnostics: { error_stage: "airtel_push" },
+          });
+        }
+
+        try {
+          await supabaseAdmin.from("payments").insert({
+            customer_id: customerId,
+            delivery_id: deliveryId || null,
+            amount_paid: 0,
+            method: "airtel-money",
+            payment_provider: "airtel",
+            payment_status: "pending",
+            reference: txRef,
+          });
+        } catch (e) {
+          console.error("Failed to persist pending Airtel payment:", e);
+        }
+
+        return respond(true, {
+          message: "Airtel Money prompt sent. Check your phone to approve the payment.",
+          checkoutRequestId: txRef,
+          chargedAmount: airtelAmount,
+          intendedAmount: amount,
+          provider: "airtel",
+        });
+      }
+
       const timestamp = new Date().toISOString().replace(/[-T:\.Z]/g, "").slice(0, 14);
       const password = generatePassword(timestamp);
 
